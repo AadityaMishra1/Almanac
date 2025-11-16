@@ -12,9 +12,10 @@ class Settings(BaseSettings):
     # Database (Supabase PostgreSQL)
     DATABASE_URL: str
 
-    # Google Gemini API (FREE!)
+    # AI APIs (FREE tier)
     GEMINI_API_KEY: str
-    GEMINI_MODEL: str = "gemini-1.5-flash"  # Free tier model - use gemini-1.5-flash or gemini-2.0-flash-lite
+    GEMINI_MODEL: str = "gemini-2.0-flash-exp"  # Latest model with best document understanding
+    GROQ_API_KEY: str = ""  # Optional: Free tier for faster inference
 
     # Google OAuth
     GOOGLE_CLIENT_ID: str
