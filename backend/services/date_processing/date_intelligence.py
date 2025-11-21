@@ -170,9 +170,10 @@ class DateIntelligence:
             # Confidence based on how explicit the format was
             confidence = 0.80  # Dateparser is good but not perfect
 
-            # Lower confidence if year is missing and we had to infer
-            if not re.search(r'\d{4}', date_str):
-                confidence = 0.70
+            # CRITICAL: Fix year based on semester context if year was not explicit
+            if not re.search(r'\d{4}', date_str) and context:
+                parsed = self._fix_year_with_semester_context(parsed, context)
+                confidence = 0.70  # Lower confidence when inferring year
 
             return parsed, confidence
 
@@ -308,6 +309,68 @@ class DateIntelligence:
                         logger.debug(f"Fuzzy parse failed: {str(e)}")
 
         return None, 0.0
+
+    def _fix_year_with_semester_context(self, parsed_date: datetime, context: dict) -> datetime:
+        """
+        Fix the year of a parsed date using semester context.
+
+        This is CRITICAL for dates like "Sep 15" where the year is ambiguous.
+        We check if the date falls within the semester bounds, and adjust if needed.
+
+        Args:
+            parsed_date: Date parsed by dateparser (may have wrong year)
+            context: Semester context with semester_start and semester_end
+
+        Returns:
+            Date with corrected year
+        """
+        if not context or ('semester_start' not in context and 'semester_end' not in context):
+            return parsed_date
+
+        semester_start = context.get('semester_start')
+        semester_end = context.get('semester_end')
+
+        if not semester_start or not semester_end:
+            return parsed_date
+
+        # Preserve the month/day/time, try different years
+        month = parsed_date.month
+        day = parsed_date.day
+        hour = parsed_date.hour
+        minute = parsed_date.minute
+        second = parsed_date.second
+
+        # Try the semester year first
+        semester_year = semester_start.year
+
+        # Also try adjacent years
+        candidate_years = [
+            semester_year,
+            semester_year + 1,
+            semester_year - 1
+        ]
+
+        for year in candidate_years:
+            try:
+                candidate_date = datetime(year, month, day, hour, minute, second)
+
+                # Check if this falls within semester bounds
+                if semester_start <= candidate_date <= semester_end:
+                    logger.debug(f"Fixed year: {parsed_date.date()} → {candidate_date.date()} (within semester bounds)")
+                    return candidate_date
+            except ValueError:
+                # Invalid date (e.g., Feb 30)
+                continue
+
+        # If no year fits within bounds, use the semester year
+        # This handles edge cases where the date might be slightly outside bounds
+        try:
+            fixed_date = datetime(semester_year, month, day, hour, minute, second)
+            logger.debug(f"Fixed year to semester year: {parsed_date.date()} → {fixed_date.date()}")
+            return fixed_date
+        except ValueError:
+            # Fallback: return original if all else fails
+            return parsed_date
 
     def detect_ambiguity(self, date_str: str) -> List[str]:
         """
