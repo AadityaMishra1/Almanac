@@ -43,6 +43,10 @@ class MultiModelParser:
         self.prompt_builder = PromptBuilder()
         self.rate_limiter = RateLimiter()
 
+        # Initialize date intelligence for post-processing
+        from services.date_processing.date_intelligence import DateIntelligence
+        self.date_intelligence = DateIntelligence()
+
         # Circuit breakers for each model
         self.gemini_circuit = CircuitBreaker(
             failure_threshold=5,
@@ -144,13 +148,19 @@ class MultiModelParser:
         strategy = MultiModelRetryStrategy(models)
 
         try:
-            result, model_used = await strategy.execute_with_fallback(
+            raw_result, model_used = await strategy.execute_with_fallback(
                 pdf_content,
                 pdf_processing_results
             )
 
-            logger.info(f"Successfully parsed with model: {model_used}")
-            return result, model_used
+            logger.info(f"Successfully extracted raw data with model: {model_used}")
+
+            # CRITICAL: Post-process dates using DateIntelligence (Phase 2)
+            logger.info("Phase 2: Normalizing dates with DateIntelligence")
+            normalized_result = self._normalize_dates(raw_result)
+
+            logger.info(f"Successfully normalized {len(normalized_result)} assignments")
+            return normalized_result, model_used
 
         except Exception as e:
             logger.error(f"All parsing models failed: {str(e)}")
@@ -214,7 +224,8 @@ class MultiModelParser:
             assignments = result.get('assignments', [])
             logger.info(f"Gemini structured output: {len(assignments)} assignments")
 
-            return assignments
+            # Return full result with document_analysis for date normalization
+            return result
 
         except Exception as e:
             logger.error(f"Gemini structured output failed: {str(e)}")
@@ -280,7 +291,8 @@ class MultiModelParser:
             assignments = result.get('assignments', [])
             logger.info(f"Gemini JSON output: {len(assignments)} assignments")
 
-            return assignments
+            # Return full result with document_analysis
+            return result
 
         finally:
             if os.path.exists(tmp_path):
@@ -354,7 +366,8 @@ class MultiModelParser:
             assignments = result.get('assignments', [])
             logger.info(f"Groq output: {len(assignments)} assignments")
 
-            return assignments
+            # Return full result with document_analysis
+            return result
 
         except Exception as e:
             logger.error(f"Groq parsing failed: {str(e)}")
@@ -414,7 +427,19 @@ class MultiModelParser:
             assignments = self._extract_from_text(text)
 
         logger.info(f"Rule-based parsing extracted {len(assignments)} assignments")
-        return assignments
+
+        # Return in expected format
+        return {
+            'assignments': assignments,
+            'document_analysis': {
+                'semester_name': None,
+                'semester_start_raw': None,
+                'semester_end_raw': None,
+                'academic_year': None,
+                'parsing_confidence': 0.5,
+                'date_format_detected': 'Mixed/Unknown'
+            }
+        }
 
     def _parse_date_simple(self, date_str: str) -> Optional[str]:
         """Simple date parsing for rule-based fallback"""
@@ -465,6 +490,189 @@ class MultiModelParser:
         # This is a minimal implementation for when all else fails
         # In practice, this should be more sophisticated
         return []
+
+    def _normalize_dates(self, raw_result: List[Dict]) -> List[Dict]:
+        """
+        Phase 2: Normalize raw date strings to YYYY-MM-DD HH:MM:SS format.
+
+        This is where the magic happens - we use DateIntelligence with full
+        semester context to accurately parse dates.
+
+        Args:
+            raw_result: List of assignments with raw_date_string fields,
+                       OR dict with 'assignments' and 'document_analysis'
+
+        Returns:
+            List of assignments with normalized due_date fields
+        """
+        logger.info("Starting date normalization with DateIntelligence")
+
+        # Handle both formats (list or dict with assignments key)
+        if isinstance(raw_result, dict):
+            assignments = raw_result.get('assignments', [])
+            document_analysis = raw_result.get('document_analysis', {})
+        else:
+            assignments = raw_result
+            document_analysis = {}
+
+        # Build semester context from document_analysis
+        semester_context = self._build_semester_context(document_analysis)
+
+        logger.info(f"Semester context: {semester_context}")
+
+        normalized_assignments = []
+
+        for idx, assignment in enumerate(assignments):
+            try:
+                # Check if this assignment already has a normalized due_date (from rule-based parser)
+                if 'due_date' in assignment and 'raw_date_string' not in assignment:
+                    # Already normalized (rule-based parser), just pass through
+                    normalized_assignments.append(assignment)
+                    continue
+
+                raw_date_string = assignment.get('raw_date_string')
+
+                if not raw_date_string:
+                    logger.warning(f"Assignment {idx} missing raw_date_string: {assignment.get('title')}")
+                    continue
+
+                logger.debug(f"Parsing '{raw_date_string}' for '{assignment.get('title')}'")
+
+                # Parse using DateIntelligence with semester context
+                parsed_dt, date_confidence = self.date_intelligence.parse_date(
+                    raw_date_string,
+                    context=semester_context
+                )
+
+                if not parsed_dt:
+                    logger.warning(f"Could not parse date '{raw_date_string}' for '{assignment.get('title')}'")
+                    continue
+
+                # Validate the parsed date
+                is_valid, warnings = self.date_intelligence.validate_date(parsed_dt, semester_context)
+
+                if not is_valid:
+                    logger.warning(f"Invalid date {parsed_dt} for '{assignment.get('title')}': {warnings}")
+                    # Still include it but with lower confidence
+
+                # Convert to normalized format
+                normalized_date = self.date_intelligence.normalize_to_iso(parsed_dt)
+
+                # Build normalized assignment
+                normalized_assignment = {
+                    'title': assignment.get('title'),
+                    'description': assignment.get('description'),
+                    'due_date': normalized_date,  # ← Normalized!
+                    'assignment_type': assignment.get('assignment_type'),
+                    'confidence_metadata': {
+                        'date_confidence': date_confidence,
+                        'type_confidence': assignment.get('confidence_metadata', {}).get('type_confidence', 0.8),
+                        'source_location': assignment.get('confidence_metadata', {}).get('source_location', 'Unknown'),
+                        'reasoning': assignment.get('confidence_metadata', {}).get('reasoning', ''),
+                        'raw_date_string': raw_date_string,  # Keep for debugging
+                        'date_warnings': warnings if warnings else None
+                    }
+                }
+
+                normalized_assignments.append(normalized_assignment)
+                logger.debug(f"✓ Normalized '{raw_date_string}' → '{normalized_date}' (confidence: {date_confidence:.2f})")
+
+            except Exception as e:
+                logger.error(f"Error normalizing assignment {idx}: {str(e)}", exc_info=True)
+                continue
+
+        logger.info(f"Normalized {len(normalized_assignments)}/{len(assignments)} assignments")
+
+        return normalized_assignments
+
+    def _build_semester_context(self, document_analysis: Dict) -> Dict:
+        """
+        Build semester context from document_analysis for date parsing.
+
+        Args:
+            document_analysis: LLM-extracted document analysis with semester info
+
+        Returns:
+            Context dict for DateIntelligence
+        """
+        context = {}
+
+        # Extract semester name
+        semester_name = document_analysis.get('semester_name')
+        if semester_name:
+            context['semester'] = semester_name
+
+        # Parse semester start date
+        semester_start_raw = document_analysis.get('semester_start_raw')
+        if semester_start_raw:
+            parsed_start, _ = self.date_intelligence.parse_date(semester_start_raw)
+            if parsed_start:
+                context['semester_start'] = parsed_start
+                logger.debug(f"Semester start: {parsed_start}")
+
+        # Parse semester end date
+        semester_end_raw = document_analysis.get('semester_end_raw')
+        if semester_end_raw:
+            parsed_end, _ = self.date_intelligence.parse_date(semester_end_raw)
+            if parsed_end:
+                context['semester_end'] = parsed_end
+                logger.debug(f"Semester end: {parsed_end}")
+
+        # If we don't have explicit dates, infer from semester name
+        if not context.get('semester_start') and semester_name:
+            inferred_dates = self._infer_semester_dates(semester_name)
+            if inferred_dates:
+                context.update(inferred_dates)
+                logger.info(f"Inferred semester dates from '{semester_name}': {inferred_dates}")
+
+        return context
+
+    def _infer_semester_dates(self, semester_name: str) -> Optional[Dict]:
+        """
+        Infer semester start/end dates from semester name.
+
+        Args:
+            semester_name: e.g., "Fall 2025", "Spring 2026", "Summer 2025"
+
+        Returns:
+            Dict with semester_start and semester_end, or None
+        """
+        import re
+        from datetime import datetime
+
+        semester_name_lower = semester_name.lower()
+
+        # Extract year
+        year_match = re.search(r'20\d{2}', semester_name)
+        if not year_match:
+            return None
+
+        year = int(year_match.group(0))
+
+        # Detect semester type
+        if 'fall' in semester_name_lower or 'autumn' in semester_name_lower:
+            return {
+                'semester_start': datetime(year, 8, 25),  # Late August
+                'semester_end': datetime(year, 12, 15)   # Mid December
+            }
+        elif 'spring' in semester_name_lower:
+            return {
+                'semester_start': datetime(year, 1, 15),  # Mid January
+                'semester_end': datetime(year, 5, 15)     # Mid May
+            }
+        elif 'summer' in semester_name_lower:
+            return {
+                'semester_start': datetime(year, 6, 1),   # Early June
+                'semester_end': datetime(year, 8, 15)     # Mid August
+            }
+        elif 'winter' in semester_name_lower:
+            # Winter session (usually December-January)
+            return {
+                'semester_start': datetime(year, 12, 15),
+                'semester_end': datetime(year + 1, 1, 31)
+            }
+
+        return None
 
     def _clean_json_response(self, response_text: str) -> str:
         """Clean AI response to extract valid JSON"""

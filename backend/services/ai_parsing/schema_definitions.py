@@ -4,6 +4,8 @@ Ensures consistent, validated responses from AI models.
 """
 
 # Assignment parsing schema for structured output
+# CRITICAL: This schema uses RAW date strings, not formatted dates
+# Python DateIntelligence will normalize dates in post-processing
 ASSIGNMENT_SCHEMA = {
     "type": "object",
     "properties": {
@@ -20,10 +22,9 @@ ASSIGNMENT_SCHEMA = {
                         "type": ["string", "null"],
                         "description": "Brief description of the assignment"
                     },
-                    "due_date": {
+                    "raw_date_string": {
                         "type": "string",
-                        "pattern": "^\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}$",
-                        "description": "Due date in YYYY-MM-DD HH:MM:SS format"
+                        "description": "EXACT date string as it appears in the document (e.g., 'Sep 15', '10/15/2025', 'Week 3 Monday'). DO NOT format or normalize - provide the raw string."
                     },
                     "assignment_type": {
                         "type": "string",
@@ -33,12 +34,6 @@ ASSIGNMENT_SCHEMA = {
                     "confidence_metadata": {
                         "type": "object",
                         "properties": {
-                            "date_confidence": {
-                                "type": "number",
-                                "minimum": 0,
-                                "maximum": 1,
-                                "description": "Confidence in date parsing (0-1)"
-                            },
                             "type_confidence": {
                                 "type": "number",
                                 "minimum": 0,
@@ -51,25 +46,33 @@ ASSIGNMENT_SCHEMA = {
                             },
                             "reasoning": {
                                 "type": "string",
-                                "description": "Brief explanation of parsing logic"
+                                "description": "Brief explanation of extraction logic"
                             }
                         },
-                        "required": ["date_confidence", "type_confidence"]
+                        "required": ["type_confidence"]
                     }
                 },
-                "required": ["title", "due_date", "assignment_type"]
+                "required": ["title", "raw_date_string", "assignment_type"]
             }
         },
         "document_analysis": {
             "type": "object",
             "properties": {
-                "semester_start": {
+                "semester_name": {
                     "type": ["string", "null"],
-                    "description": "Detected semester start date (YYYY-MM-DD)"
+                    "description": "Detected semester name (e.g., 'Fall 2025', 'Spring 2026', 'Summer 2025')"
                 },
-                "semester_end": {
+                "semester_start_raw": {
                     "type": ["string", "null"],
-                    "description": "Detected semester end date (YYYY-MM-DD)"
+                    "description": "Raw semester start date string from document (e.g., 'August 25, 2025')"
+                },
+                "semester_end_raw": {
+                    "type": ["string", "null"],
+                    "description": "Raw semester end date string from document (e.g., 'December 15, 2025')"
+                },
+                "academic_year": {
+                    "type": ["string", "null"],
+                    "description": "Academic year (e.g., '2025-2026')"
                 },
                 "parsing_confidence": {
                     "type": "number",
@@ -85,11 +88,12 @@ ASSIGNMENT_SCHEMA = {
             "required": ["parsing_confidence"]
         }
     },
-    "required": ["assignments"]
+    "required": ["assignments", "document_analysis"]
 }
 
 
 # Simplified schema for Groq (may not support complex nested schemas)
+# Also uses raw date strings for consistency
 ASSIGNMENT_SCHEMA_SIMPLE = {
     "type": "object",
     "properties": {
@@ -100,13 +104,22 @@ ASSIGNMENT_SCHEMA_SIMPLE = {
                 "properties": {
                     "title": {"type": "string"},
                     "description": {"type": ["string", "null"]},
-                    "due_date": {"type": "string"},
+                    "raw_date_string": {"type": "string"},
                     "assignment_type": {
                         "type": "string",
                         "enum": ["homework", "exam", "project", "quiz", "presentation", "other"]
                     }
                 },
-                "required": ["title", "due_date", "assignment_type"]
+                "required": ["title", "raw_date_string", "assignment_type"]
+            }
+        },
+        "document_analysis": {
+            "type": "object",
+            "properties": {
+                "semester_name": {"type": ["string", "null"]},
+                "semester_start_raw": {"type": ["string", "null"]},
+                "semester_end_raw": {"type": ["string", "null"]},
+                "parsing_confidence": {"type": "number"}
             }
         }
     },
