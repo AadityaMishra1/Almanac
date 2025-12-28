@@ -1,0 +1,194 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id            String          @id @default(cuid())
+  email         String          @unique
+  name          String?
+  image         String?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  courses       Course[]
+  events        Event[]
+  studySessions StudySession[]
+  notificationPreference NotificationPreference?
+  notifications Notification[]
+  sharedCourses CourseShare[]   @relation("SharedBy")
+  createdGroupSessions GroupStudySession[]
+  groupSessionAttendances GroupStudyAttendee[]
+}
+
+model Course {
+  id              String            @id @default(cuid())
+  name            String
+  term            String?           // e.g., "Fall 2025", "Spring 2026"
+  color           String            @default("#3b82f6") // Hex color for calendar
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  userId          String
+  user            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  syllabusUploads SyllabusUpload[]
+  events          Event[]
+  studySessions   StudySession[]
+  shares          CourseShare[]
+  groupSessions   GroupStudySession[]
+
+  @@index([userId])
+}
+
+model SyllabusUpload {
+  id              String    @id @default(cuid())
+  fileName        String
+  fileUrl         String    // Vercel Blob URL
+  uploadedAt      DateTime  @default(now())
+
+  courseId        String
+  course          Course    @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@index([courseId])
+}
+
+model Event {
+  id              String      @id @default(cuid())
+  title           String
+  type            String      // e.g., "Assignment", "Exam", "Quiz"
+  startDate       DateTime    // Store as timestamp for flexibility
+  endDate         DateTime?   // Optional for multi-day events
+  description     String?     @db.Text
+  source          EventSource @default(PDF)
+  googleEventId   String?     // Track synced Google Calendar event ID
+
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  courseId        String?
+  course          Course?     @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  userId          String
+  user            User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  notifications   Notification[]
+
+  @@index([courseId])
+  @@index([userId])
+  @@index([startDate])
+}
+
+// Phase 2: Study Session Tracking
+model StudySession {
+  id          String   @id @default(cuid())
+  userId      String
+  courseId    String?
+  duration    Int      // minutes
+  date        DateTime
+  notes       String?
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course      Course?  @relation(fields: [courseId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([date])
+}
+
+// Phase 2: Notification Preferences
+model NotificationPreference {
+  id               String  @id @default(cuid())
+  userId           String  @unique
+  emailEnabled     Boolean @default(true)
+  pushEnabled      Boolean @default(false)
+  reminderDays     Json    @default("{\"Exam\": [7, 3, 1], \"Assignment\": [3, 1], \"Quiz\": [1]}")
+  weeklyDigest     Boolean @default(true)
+  digestDay        Int     @default(0) // 0=Sunday
+
+  user             User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// Phase 2: Notifications
+model Notification {
+  id          String   @id @default(cuid())
+  userId      String
+  eventId     String?
+  type        String   // 'reminder', 'digest', 'conflict_warning'
+  title       String
+  message     String   @db.Text
+  read        Boolean  @default(false)
+  sentAt      DateTime @default(now())
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  event       Event?   @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([read])
+}
+
+// Phase 2: Course Sharing
+model CourseShare {
+  id          String     @id @default(cuid())
+  courseId    String
+  sharedBy    String    // userId
+  sharedWith  String    // email or userId
+  permission  Permission @default(VIEW)
+  createdAt   DateTime   @default(now())
+
+  course      Course    @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  owner       User      @relation("SharedBy", fields: [sharedBy], references: [id], onDelete: Cascade)
+
+  @@unique([courseId, sharedWith])
+  @@index([sharedWith])
+}
+
+// Phase 2: Group Study Sessions
+model GroupStudySession {
+  id          String   @id @default(cuid())
+  title       String
+  description String?  @db.Text
+  startTime   DateTime
+  endTime     DateTime
+  location    String?
+  courseId    String?
+  createdBy   String
+
+  course      Course?  @relation(fields: [courseId], references: [id], onDelete: SetNull)
+  creator     User     @relation(fields: [createdBy], references: [id], onDelete: Cascade)
+  attendees   GroupStudyAttendee[]
+
+  @@index([courseId])
+  @@index([startTime])
+}
+
+model GroupStudyAttendee {
+  id              String            @id @default(cuid())
+  sessionId       String
+  userId          String
+  status          AttendeeStatus    @default(INVITED)
+
+  session         GroupStudySession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  user            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([sessionId, userId])
+}
+
+enum EventSource {
+  PDF
+  MANUAL
+}
+
+enum Permission {
+  VIEW
+  EDIT
+}
+
+enum AttendeeStatus {
+  INVITED
+  ACCEPTED
+  DECLINED
+}
