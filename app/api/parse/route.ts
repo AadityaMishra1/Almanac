@@ -63,8 +63,17 @@ export async function POST(request: Request) {
     // Use semester from form data or default to Spring 2026
     const semester = (formData.get("semester") as string) || "Spring 2026";
 
-    // Extract events with confidence scoring
+    // Extract events with confidence scoring (includes post-adjustment via adjustConfidence)
     const eventsWithConfidence = await extractEventsWithConfidence(fullContent, semester);
+
+    if (eventsWithConfidence.length === 0) {
+      return NextResponse.json(
+        {
+          error: "No events extracted from PDF. The document may be empty or have no recognizable dates.",
+        },
+        { status: 400 }
+      );
+    }
 
     // Get or create course
     const courseResult = await getOrCreateCourse({

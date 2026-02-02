@@ -4,7 +4,7 @@
  */
 
 import { createWorker } from "tesseract.js";
-import { createCanvas } from "canvas";
+import { createCanvas, Canvas } from "canvas";
 
 export async function extractTextViaOCR(buffer: Buffer): Promise<string> {
   let worker: Awaited<ReturnType<typeof createWorker>> | null = null;
@@ -13,21 +13,15 @@ export async function extractTextViaOCR(buffer: Buffer): Promise<string> {
     // Dynamic import of pdfjs-dist to avoid server-side initialization issues
     const pdfjsLib = await import("pdfjs-dist/legacy/build/pdf.mjs");
 
-    // Configure for Node.js environment
+    // Configure for Node.js environment - disable worker
     pdfjsLib.GlobalWorkerOptions.workerSrc = "";
-
-    // Polyfill canvas for Node.js (pdfjs expects browser Canvas API)
-    if (typeof globalThis.CanvasRenderingContext2D === 'undefined') {
-      const { Canvas } = await import('canvas');
-      (globalThis as any).CanvasRenderingContext2D = Canvas as any;
-    }
 
     // Load PDF document
     const pdf = await pdfjsLib.getDocument({
       data: buffer,
-      useSystemFonts: true, // Use system fonts instead of embedded (more reliable in Node.js)
-      isEvalSupported: false, // Disable eval for security in server environment
-    }).promise;
+      useSystemFonts: true,
+      isEvalSupported: false,
+    } as any).promise;
     const pageCount = pdf.numPages;
 
     // Initialize Tesseract worker
@@ -48,17 +42,17 @@ export async function extractTextViaOCR(buffer: Buffer): Promise<string> {
       await page.render({
         canvasContext: context as any,
         viewport,
-        canvas: canvas as any,
-      }).promise;
+      } as any).promise;
 
       // Extract text via OCR
       const {
         data: { text },
-      } = await worker.recognize(canvas.toBuffer("image/png"));
+      } = await worker.recognize((canvas as Canvas).toBuffer("image/png"));
       pageTexts.push(text);
 
-      // Clear canvas reference for garbage collection
-      (canvas as any) = null;
+      // Clear canvas for GC
+      canvas.width = 0;
+      canvas.height = 0;
     }
 
     // Join page texts with double newline separator
