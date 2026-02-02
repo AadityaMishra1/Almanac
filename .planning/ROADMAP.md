@@ -33,12 +33,13 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. System enforces read-only permissions on external events (mutation attempts fail)
   4. Event schema includes all critical fields: title, date, time, type, course, source, editable flag
 
-**Plans**: 3 plans
+**Plans**: 4 plans
 
 Plans:
 - [ ] 01-01-PLAN.md — Set up Prisma ORM with Event/Course schemas and source authority tracking
 - [ ] 01-02-PLAN.md — Integrate Prisma Client, create type adapters, implement CRUD with permission enforcement
-- [ ] 01-03-PLAN.md — Connect PDF parsing to database, update sync to populate Google Calendar IDs
+- [ ] 01-03a-PLAN.md — Add database persistence to parse endpoint with simple course input field
+- [ ] 01-03b-PLAN.md — Update UI integration and sync to work with database-backed events
 
 ### Phase 2: Enhanced PDF Extraction
 **Goal**: Extend existing PDF parser to handle scanned/image-based syllabi and Excel/spreadsheet layouts with validation and confidence scoring
@@ -131,7 +132,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Data Foundation | 0/3 | Not started | - |
+| 1. Data Foundation | 0/4 | Not started | - |
 | 2. Enhanced PDF Extraction | 0/TBD | Not started | - |
 | 3. Calendar UI | 0/TBD | Not started | - |
 | 4. Event Management & Sync | 0/TBD | Not started | - |
