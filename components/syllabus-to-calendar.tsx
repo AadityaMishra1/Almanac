@@ -6,7 +6,7 @@ import { EventsPreviewTable } from "@/components/events-preview-table";
 import { syncEventsToCalendar } from "@/app/server-actions/calendar";
 import { Button } from "@/components/ui/button";
 import { useSession } from "next-auth/react";
-import { getEvents } from "@/app/server-actions/events";
+import { getEvents, updateEvent } from "@/app/server-actions/events";
 import type { EventWithConfidence, ExtractionMetadata } from "@/lib/events/types";
 
 type PreviewRow = EventWithConfidence & { selected: boolean; id?: string };
@@ -20,6 +20,9 @@ export function SyllabusToCalendar() {
   const [courseId, setCourseId] = React.useState<string | null>(null);
   const [courseName, setCourseName] = React.useState("");
   const [extractionMeta, setExtractionMeta] = React.useState<ExtractionMetadata | null>(null);
+
+  // Track original data to detect user edits before sync
+  const originalDataRef = React.useRef<PreviewRow[]>([]);
 
   async function handlePdf(file: File) {
     setIsParsing(true);
@@ -86,6 +89,8 @@ export function SyllabusToCalendar() {
       });
 
       setRows(loadedRows);
+      // Store original data for comparison during sync
+      originalDataRef.current = loadedRows;
     } catch (e) {
       setError(e instanceof Error ? e.message : "Something went wrong while parsing.");
     } finally {
@@ -97,7 +102,39 @@ export function SyllabusToCalendar() {
     setIsSyncing(true);
     setError(null);
     try {
-      // Get selected event IDs (not event objects)
+      // STEP 1: Persist user edits to database before syncing to Google Calendar
+      // Compare current rows with original data to detect modifications
+      const modifiedRows = rows.filter((currentRow) => {
+        if (!currentRow.id) return false; // Skip rows without database ID
+
+        const originalRow = originalDataRef.current.find((r) => r.id === currentRow.id);
+        if (!originalRow) return false;
+
+        // Check if any editable fields changed
+        return (
+          currentRow.title !== originalRow.title ||
+          currentRow.date !== originalRow.date ||
+          currentRow.type !== originalRow.type ||
+          currentRow.description !== originalRow.description
+        );
+      });
+
+      // Update modified events in database
+      for (const row of modifiedRows) {
+        const updateResult = await updateEvent(row.id!, {
+          title: row.title,
+          date: row.date,
+          type: row.type,
+          description: row.description,
+        });
+
+        if (!updateResult.ok) {
+          console.error(`Failed to update event ${row.id}:`, updateResult.error);
+          // Continue with other updates even if one fails
+        }
+      }
+
+      // STEP 2: Get selected event IDs for Google Calendar sync
       const selectedEventIds = rows
         .filter((r) => r.selected && r.id)
         .map((r) => r.id!);
@@ -106,7 +143,7 @@ export function SyllabusToCalendar() {
         throw new Error("No events selected for sync.");
       }
 
-      // Call sync with event IDs
+      // STEP 3: Sync to Google Calendar with database IDs
       const result = await syncEventsToCalendar(selectedEventIds);
       if (!result.ok) throw new Error(result.error);
 
