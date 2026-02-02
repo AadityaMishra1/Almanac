@@ -12,7 +12,7 @@ This roadmap transforms Almanac from a basic text-based PDF parser into a compre
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Data Foundation** - Establish event storage with source authority and permission enforcement
+- [x] **Phase 1: Data Foundation** - Establish event storage with source authority and permission enforcement ✓
 - [ ] **Phase 2: Enhanced PDF Extraction** - Extend parsing to handle scanned/image PDFs and spreadsheet layouts
 - [ ] **Phase 3: Calendar UI** - Build month/week/day calendar views with mobile-responsive interface
 - [ ] **Phase 4: Event Management & Sync** - Implement CRUD operations and bidirectional Google Calendar sync
@@ -36,10 +36,10 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Plans**: 4 plans
 
 Plans:
-- [ ] 01-01-PLAN.md — Set up Prisma ORM with Event/Course schemas and source authority tracking
-- [ ] 01-02-PLAN.md — Integrate Prisma Client, create type adapters, implement CRUD with permission enforcement
-- [ ] 01-03a-PLAN.md — Add database persistence to parse endpoint with simple course input field
-- [ ] 01-03b-PLAN.md — Update UI integration and sync to work with database-backed events
+- [x] 01-01-PLAN.md — Set up Prisma ORM with Event/Course schemas and source authority tracking
+- [x] 01-02-PLAN.md — Integrate Prisma Client, create type adapters, implement CRUD with permission enforcement
+- [x] 01-03a-PLAN.md — Add database persistence to parse endpoint with simple course input field
+- [x] 01-03b-PLAN.md — Update UI integration and sync to work with database-backed events
 
 ### Phase 2: Enhanced PDF Extraction
 **Goal**: Extend existing PDF parser to handle scanned/image-based syllabi and Excel/spreadsheet layouts with validation and confidence scoring
@@ -132,7 +132,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Data Foundation | 0/4 | Not started | - |
+| 1. Data Foundation | 4/4 | ✓ Complete | 2026-02-02 |
 | 2. Enhanced PDF Extraction | 0/TBD | Not started | - |
 | 3. Calendar UI | 0/TBD | Not started | - |
 | 4. Event Management & Sync | 0/TBD | Not started | - |

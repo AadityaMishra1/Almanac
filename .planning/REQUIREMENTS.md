@@ -48,10 +48,10 @@
 
 ### Data Layer
 
-- [ ] **DATA-01**: System persists event data locally with source and permission metadata
-- [ ] **DATA-02**: System distinguishes Almanac-created events from external Google Calendar events
-- [ ] **DATA-03**: System enforces read-only permissions on external events
-- [ ] **DATA-04**: Event schema includes: title, date, time, type, course, source, editable flag
+- [x] **DATA-01**: System persists event data locally with source and permission metadata ✓
+- [x] **DATA-02**: System distinguishes Almanac-created events from external Google Calendar events ✓
+- [x] **DATA-03**: System enforces read-only permissions on external events ✓
+- [x] **DATA-04**: Event schema includes: title, date, time, type, course, source, editable flag ✓
 
 ## v2 Requirements
 
@@ -106,10 +106,10 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| DATA-01 | Phase 1 | Pending |
-| DATA-02 | Phase 1 | Pending |
-| DATA-03 | Phase 1 | Pending |
-| DATA-04 | Phase 1 | Pending |
+| DATA-01 | Phase 1 | Complete |
+| DATA-02 | Phase 1 | Complete |
+| DATA-03 | Phase 1 | Complete |
+| DATA-04 | Phase 1 | Complete |
 | PDF-01 | Phase 2 | Pending |
 | PDF-02 | Phase 2 | Pending |
 | PDF-03 | Phase 2 | Pending |
