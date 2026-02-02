@@ -166,7 +166,7 @@ export function EventDetailModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className="sm:max-w-lg max-w-[95vw] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
             {isEditing ? 'Edit Event' : event.title}
@@ -238,6 +238,7 @@ export function EventDetailModal({
                     setEditValues((prev) => ({ ...prev, title: e.target.value }))
                   }
                   placeholder="Event title"
+                  className="w-full"
                 />
               </div>
 
@@ -251,6 +252,7 @@ export function EventDetailModal({
                   onChange={(e) =>
                     setEditValues((prev) => ({ ...prev, date: e.target.value }))
                   }
+                  className="w-full"
                 />
               </div>
 
@@ -278,6 +280,7 @@ export function EventDetailModal({
                       onChange={(e) =>
                         setEditValues((prev) => ({ ...prev, time: e.target.value }))
                       }
+                      className="w-full"
                     />
                   </>
                 )}
@@ -311,16 +314,16 @@ export function EventDetailModal({
           )}
         </div>
 
-        <DialogFooter>
+        <DialogFooter className="flex-col sm:flex-row gap-2">
           {!isEditing && (
             <>
               {event.editable && (
-                <Button onClick={handleEdit} variant="default">
+                <Button onClick={handleEdit} variant="default" className="w-full sm:w-auto">
                   Edit
                 </Button>
               )}
               <DialogClose asChild>
-                <Button variant="outline">Close</Button>
+                <Button variant="outline" className="w-full sm:w-auto">Close</Button>
               </DialogClose>
             </>
           )}
@@ -331,10 +334,11 @@ export function EventDetailModal({
                 onClick={handleCancel}
                 variant="outline"
                 disabled={isSaving}
+                className="w-full sm:w-auto"
               >
                 Cancel
               </Button>
-              <Button onClick={handleSave} disabled={isSaving}>
+              <Button onClick={handleSave} disabled={isSaving} className="w-full sm:w-auto">
                 {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Save
               </Button>

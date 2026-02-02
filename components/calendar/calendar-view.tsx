@@ -9,7 +9,30 @@ import { EventDetailModal } from './event-detail-modal';
 import { getCourseColor } from '@/lib/calendar/event-colors';
 import { getAcademicDatesForSemester } from '@/lib/calendar/ncsu-academic-calendar';
 import { findConflicts, type TimeSlot } from '@/lib/calendar/conflict-detection';
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
+
+/**
+ * Hook to detect mobile screen size (<768px).
+ * SSR-safe: defaults to false on server, updates on client.
+ */
+function useIsMobile() {
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(max-width: 767px)');
+
+    // Set initial value
+    setIsMobile(mediaQuery.matches);
+
+    // Listen for changes
+    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+    mediaQuery.addEventListener('change', handler);
+
+    return () => mediaQuery.removeEventListener('change', handler);
+  }, []);
+
+  return isMobile;
+}
 
 /**
  * Calendar event type for react-big-calendar.
@@ -89,9 +112,17 @@ interface CalendarViewProps {
 }
 
 export function CalendarView({ events, semester = 'Spring 2026' }: CalendarViewProps) {
+  const isMobile = useIsMobile();
   const [date, setDate] = useState<Date>(new Date());
   const [view, setView] = useState<View>('month');
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
+
+  // Auto-switch to day view on mobile if currently in month view
+  useEffect(() => {
+    if (isMobile && view === 'month') {
+      setView('day');
+    }
+  }, [isMobile]);
 
   // Detect conflicts among timed events
   const conflictingIds = useMemo(() => {
@@ -218,14 +249,14 @@ export function CalendarView({ events, semester = 'Spring 2026' }: CalendarViewP
 
   const components = useMemo(
     () => ({
-      toolbar: CalendarToolbar<CalendarEvent>,
+      toolbar: (props: any) => <CalendarToolbar {...props} isMobile={isMobile} />,
       event: CalendarEventChip,
     }),
-    []
+    [isMobile]
   );
 
   return (
-    <div className="h-[calc(100vh-120px)] w-full">
+    <div className={isMobile ? "h-[calc(100vh-80px)] w-full" : "h-[calc(100vh-120px)] w-full"}>
       <Calendar<CalendarEvent>
         localizer={localizer}
         events={calendarEvents}
@@ -238,6 +269,7 @@ export function CalendarView({ events, semester = 'Spring 2026' }: CalendarViewP
         views={['month', 'week', 'day']}
         components={components}
         eventPropGetter={eventPropGetter}
+        dayLayoutAlgorithm="no-overlap"
         style={{ height: '100%' }}
         startAccessor="start"
         endAccessor="end"

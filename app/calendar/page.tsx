@@ -27,8 +27,8 @@ export default async function CalendarPage() {
   }
 
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-7xl flex-col gap-4 p-4">
-      <header className="flex items-center justify-between">
+    <main className="mx-auto flex min-h-screen w-full max-w-7xl flex-col gap-4 p-4 sm:p-6">
+      <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div className="space-y-1">
           <h1 className="text-2xl font-semibold tracking-tight">Calendar</h1>
           <p className="text-sm text-zinc-600">
@@ -37,7 +37,7 @@ export default async function CalendarPage() {
         </div>
         <Link
           href="/"
-          className="flex items-center gap-2 text-sm text-zinc-600 hover:text-zinc-900"
+          className="flex items-center gap-2 text-sm text-zinc-600 hover:text-zinc-900 min-h-[44px]"
         >
           <Upload className="h-4 w-4" />
           Upload Syllabus
