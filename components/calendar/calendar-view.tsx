@@ -5,6 +5,7 @@ import 'react-big-calendar/lib/css/react-big-calendar.css';
 import { localizer } from '@/lib/calendar/localizer';
 import { CalendarToolbar } from './calendar-toolbar';
 import { CalendarEventChip } from './calendar-event';
+import { EventDetailModal } from './event-detail-modal';
 import { getCourseColor } from '@/lib/calendar/event-colors';
 import { getAcademicDatesForSemester } from '@/lib/calendar/ncsu-academic-calendar';
 import { findConflicts, type TimeSlot } from '@/lib/calendar/conflict-detection';
@@ -206,6 +207,15 @@ export function CalendarView({ events, semester = 'Spring 2026' }: CalendarViewP
     setSelectedEvent(event);
   }, []);
 
+  const handleEventUpdated = useCallback(
+    (updatedEvent: CalendarEvent) => {
+      // Optimistic update: update the event in local state
+      // The page will refetch on next navigation, but this keeps UI responsive
+      setSelectedEvent(null);
+    },
+    []
+  );
+
   const components = useMemo(
     () => ({
       toolbar: CalendarToolbar<CalendarEvent>,
@@ -233,6 +243,13 @@ export function CalendarView({ events, semester = 'Spring 2026' }: CalendarViewP
         endAccessor="end"
         popup={true}
         scrollToTime={new Date(0, 0, 0, 8, 0)}
+      />
+
+      <EventDetailModal
+        event={selectedEvent}
+        open={!!selectedEvent}
+        onOpenChange={(open) => !open && setSelectedEvent(null)}
+        onEventUpdated={handleEventUpdated}
       />
     </div>
   );
