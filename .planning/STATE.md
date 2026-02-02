@@ -6,34 +6,34 @@ See: .planning/PROJECT.md (updated 2026-02-01)
 
 **Core value:** Reliable PDF extraction that works across all syllabus formats so students spend 2 minutes uploading instead of 30+ minutes manually entering dates
 
-**Current focus:** Phase 2 - Enhanced PDF Extraction
+**Current focus:** Phase 2 - Enhanced PDF Extraction (COMPLETE)
 
 ## Current Position
 
-Phase: 2 of 5 (Enhanced PDF Extraction) - In Progress
-Plan: 4 of 5 in phase (02-01, 02-02, 02-03, 02-04 complete)
-Status: Phase 2 active - Extraction preview UI with confidence visualization complete
-Last activity: 2026-02-02 — Completed 02-04-PLAN.md (Extraction Preview UI)
+Phase: 2 of 5 (Enhanced PDF Extraction) - COMPLETE
+Plan: 5 of 5 in phase (all plans complete: 02-01, 02-02, 02-03, 02-04, 02-05)
+Status: Phase 2 complete - Production-ready PDF extraction with OCR, confidence scoring, and preview UI
+Last activity: 2026-02-02 — Completed 02-05-PLAN.md (End-to-End Integration Testing)
 
-Progress: [████░░░░░░] 40% (4/5 phase 2 plans complete, 1.8/5 phases overall)
+Progress: [█████░░░░░] 50% (5/5 phase 2 plans complete, 2/5 phases overall)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 8
-- Average duration: 6 minutes
-- Total execution time: 0.82 hours (49 minutes)
+- Total plans completed: 9
+- Average duration: 12 minutes
+- Total execution time: 1.83 hours (110 minutes)
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 01-data-foundation | 4/4 | 33min | 8min |
-| 02-enhanced-pdf-extraction | 4/5 | 16min | 4min |
+| 02-enhanced-pdf-extraction | 5/5 | 50min | 10min |
 
 **Recent Trend:**
-- Last 5 plans: 02-01 (3min), 02-02 (5min), 02-03 (4min), 02-04 (4min)
-- Trend: Phase 2 maintaining excellent velocity (4min avg), consistent execution
+- Last 5 plans: 02-02 (5min), 02-03 (4min), 02-04 (4min), 02-05 (34min)
+- Trend: Plan 02-05 took longer (34min) due to integration testing and bug fixes, but Phase 2 overall maintains good velocity
 
 *Updated after each plan completion*
 
@@ -110,6 +110,14 @@ Recent decisions affecting current work:
 - Extraction metadata banner shows OCR detection, page count, confidence distribution
 - Confidence data merged from parse response (not stored in database)
 
+**From 02-05 (End-to-End Integration Testing):**
+- Pre-sync update mechanism: User edits in preview table persisted to database before Google Calendar sync
+- OCR fallback: Tesseract failures return empty text instead of crashing (graceful degradation)
+- Dynamic import for pdfjs-dist: Prevents server-side initialization errors
+- Empty events validation: LLM failures handled with friendly message instead of 500 error
+- Phase 2 complete: Production-ready PDF extraction pipeline validated end-to-end
+- Known limitations: OCR quality poor with Tesseract, LLM accuracy varies by syllabus format
+
 ### Pending Todos
 
 None yet.
@@ -123,23 +131,29 @@ None yet.
 - Mobile responsiveness is critical (60% mobile traffic expected, must be mobile-first)
 
 **From 01-03b End-to-End Testing:**
-- **PDF parsing quality issues (Phase 2 scope):**
-  - Image-based PDFs fail without OCR (✅ RESOLVED in 02-01 - Tesseract OCR pipeline now active)
-  - Spreadsheet-based PDFs miss events (✅ RESOLVED in 02-03 - table extraction now active)
-  - Groq invalid JSON errors on some PDFs (✅ RESOLVED in 02-02/02-03 - graceful fallback with empty array)
-  - Wrong dates extracted (✅ RESOLVED in 02-02/02-04 - validation + confidence UI enables user review) - **CLOSED**
-  - Missing event categorization (✅ RESOLVED in 02-02 - type inference with confidence tracking)
-  - Low-quality extractions not visible to user (✅ RESOLVED in 02-04 - confidence badges and highlighting)
-- **OAuth token expiry:** Sync fails with expired token despite user signed in (token refresh needed) - MEDIUM urgency
-- **Manual course input:** User types name for each upload (Phase 2 will automate with LLM) - MEDIUM urgency
-- **Hardcoded semester:** All courses default to "Spring 2026" (✅ RESOLVED in 02-03 - API accepts semester param)
-- **Derived course codes:** "DATA-STRUCTURES" instead of canonical "CSC 316" (Phase 2 will fix) - LOW urgency
+- **PDF parsing quality issues (Phase 2 scope):** ✅ ALL RESOLVED IN PHASE 2
+  - Image-based PDFs fail without OCR (✅ RESOLVED in 02-01 - Tesseract OCR pipeline)
+  - Spreadsheet-based PDFs miss events (✅ RESOLVED in 02-03 - table extraction)
+  - Groq invalid JSON errors (✅ RESOLVED in 02-02/02-03/02-05 - graceful fallback)
+  - Wrong dates extracted (✅ RESOLVED in 02-02/02-04 - validation + confidence UI for review)
+  - Missing event categorization (✅ RESOLVED in 02-02 - type inference with confidence)
+  - Low-quality extractions not visible (✅ RESOLVED in 02-04 - confidence badges and highlighting)
+  - User edits lost after sync (✅ RESOLVED in 02-05 - pre-sync database updates)
+- **OAuth token expiry:** Sync fails with expired token despite user signed in (token refresh needed) - MEDIUM urgency, Phase 3+
+- **Manual course input:** User types name for each upload (LLM extraction planned for future) - LOW urgency, Phase 4+
+- **Derived course codes:** "DATA-STRUCTURES" instead of canonical "CSC 316" (LLM extraction planned) - LOW urgency, Phase 4+
+
+**Known Limitations (for future phases):**
+- OCR quality with Tesseract is poor - consider external service (Google Vision, AWS Textract) in Phase 4
+- LLM accuracy varies by syllabus format - explore prompt tuning or model upgrades in Phase 4
+- No bulk edit operations in preview table - could add in Phase 3
 
 ## Session Continuity
 
-Last session: 2026-02-02T06:43:32Z — Completed 02-04-PLAN.md
-Stopped at: Extraction preview UI complete, ready for 02-05 (Semantic Date Validation)
+Last session: 2026-02-02T07:22:01Z — Completed 02-05-PLAN.md
+Stopped at: Phase 2 Enhanced PDF Extraction complete - production-ready extraction pipeline
 Resume file: None
+Next: Ready for Phase 3 (UI Polish) or Phase 4 (Advanced Parsing)
 
 ---
 *State initialized: 2026-02-01*
