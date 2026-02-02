@@ -11,28 +11,28 @@ See: .planning/PROJECT.md (updated 2026-02-01)
 ## Current Position
 
 Phase: 1 of 5 (Data Foundation)
-Plan: 1 of 4 (completed 01-01-PLAN.md)
+Plan: 2 of 4 (completed 01-02-PLAN.md)
 Status: In progress
-Last activity: 2026-02-02 — Completed 01-01-PLAN.md (Database Schema Foundation)
+Last activity: 2026-02-02 — Completed 01-02-PLAN.md (CRUD Operations with Permission Enforcement)
 
-Progress: [██░░░░░░░░] 25%
+Progress: [██░░░░░░░░] 50%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 1
-- Average duration: 2 minutes
-- Total execution time: 0.04 hours
+- Total plans completed: 2
+- Average duration: 12 minutes
+- Total execution time: 0.40 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| 01-data-foundation | 1/4 | 2min | 2min |
+| 01-data-foundation | 2/4 | 23min | 12min |
 
 **Recent Trend:**
-- Last 5 plans: 01-01 (2min)
-- Trend: Just started
+- Last 5 plans: 01-01 (2min), 01-02 (21min)
+- Trend: Steady progress
 
 *Updated after each plan completion*
 
@@ -56,6 +56,13 @@ Recent decisions affecting current work:
 - EventSource enum distinguishes Almanac-created vs external events
 - editable field computed from source for permission enforcement
 
+**From 01-02 (CRUD Operations with Permission Enforcement):**
+- Singleton pattern for PrismaClient prevents connection pool exhaustion in development
+- Type adapters bridge SyllabusEvent (PDF parsing) and Prisma Event (database)
+- Permission checks execute before database mutations (fail fast)
+- Discriminated union return types for error handling: { ok: true; ... } | { ok: false; error: string }
+- Include course relationships in queries to avoid N+1 problem
+
 ### Pending Todos
 
 None yet.
@@ -70,8 +77,8 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-02-02T03:14:52Z — Completed 01-01-PLAN.md
-Stopped at: Database schema foundation complete, ready for 01-02 (Server Actions Integration)
+Last session: 2026-02-02T03:40:39Z — Completed 01-02-PLAN.md
+Stopped at: CRUD operations with permission enforcement complete, ready for 01-03 (Course Management)
 Resume file: None
 
 ---
