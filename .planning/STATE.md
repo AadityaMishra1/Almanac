@@ -10,29 +10,30 @@ See: .planning/PROJECT.md (updated 2026-02-01)
 
 ## Current Position
 
-Phase: 1 of 5 (Data Foundation) ✓ Complete
-Plan: Ready for Phase 2 planning
-Status: Phase 1 complete, Phase 2 ready
-Last activity: 2026-02-02 — Completed Phase 1 (Data Foundation)
+Phase: 2 of 5 (Enhanced PDF Extraction) - In Progress
+Plan: 1 of 5 in phase (02-01 complete)
+Status: Phase 2 active - OCR extraction pipeline complete
+Last activity: 2026-02-02 — Completed 02-01-PLAN.md (OCR Extraction Pipeline)
 
-Progress: [██░░░░░░░░] 20% (1/5 phases)
+Progress: [██░░░░░░░░] 22% (1/5 phase 2 plans complete, 1.2/5 phases overall)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 4
-- Average duration: 8 minutes
-- Total execution time: 0.53 hours (33 minutes)
+- Total plans completed: 5
+- Average duration: 7 minutes
+- Total execution time: 0.58 hours (36 minutes)
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 01-data-foundation | 4/4 | 33min | 8min |
+| 02-enhanced-pdf-extraction | 1/5 | 3min | 3min |
 
 **Recent Trend:**
-- Last 5 plans: 01-01 (2min), 01-02 (21min), 01-03a (2min), 01-03b (8min)
-- Trend: Phase 1 complete with consistent execution speed
+- Last 5 plans: 01-02 (21min), 01-03a (2min), 01-03b (8min), 02-01 (3min)
+- Trend: Phase 2 started - first plan completed quickly (pre-existing work)
 
 *Updated after each plan completion*
 
@@ -77,6 +78,14 @@ Recent decisions affecting current work:
 - Breaking changes verified with full end-to-end integration testing
 - Phase 1 Data Foundation complete
 
+**From 02-01 (OCR Extraction Pipeline):**
+- Text density heuristic (< 100 chars/page OR < 50 words/page) triggers OCR extraction
+- OCR renders at 2x scale for quality, processes sequentially to avoid OOM
+- Unified extraction interface: extractPdfContent(buffer) returns { text, metadata: { method, pageCount } }
+- Modular architecture: detect-pdf-type, extract-text, extract-ocr as separate concerns
+- Backward compatibility maintained: lib/pdf.ts re-exports for existing code
+- Legacy pdfjs-dist build required for Node.js/Next.js compatibility
+
 ### Pending Todos
 
 None yet.
@@ -91,9 +100,9 @@ None yet.
 
 **From 01-03b End-to-End Testing:**
 - **PDF parsing quality issues (Phase 2 scope):**
-  - Image-based PDFs fail without OCR (Phase 2 PDF-01 will add Tesseract) - HIGH urgency
-  - Groq invalid JSON errors on some PDFs (Phase 2 PDF-03/04 will improve accuracy) - HIGH urgency
-  - Wrong dates extracted (open vs due dates - Phase 2 PDF-04 semantic understanding) - HIGH urgency
+  - Image-based PDFs fail without OCR (✅ RESOLVED in 02-01 - Tesseract OCR pipeline now active)
+  - Groq invalid JSON errors on some PDFs (Phase 2 02-03/04/05 will improve accuracy) - HIGH urgency
+  - Wrong dates extracted (open vs due dates - Phase 2 02-02/04/05 semantic understanding) - HIGH urgency
 - **OAuth token expiry:** Sync fails with expired token despite user signed in (token refresh needed) - MEDIUM urgency
 - **Manual course input:** User types name for each upload (Phase 2 will automate with LLM) - MEDIUM urgency
 - **Hardcoded semester:** All courses default to "Spring 2026" (Phase 2 will extract from PDF) - LOW urgency
@@ -101,8 +110,8 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-02-02T04:10:22Z — Completed 01-03b-PLAN.md
-Stopped at: Phase 1 Data Foundation complete, ready for Phase 2 (Smart Parsing)
+Last session: 2026-02-02T06:30:21Z — Completed 02-01-PLAN.md
+Stopped at: OCR extraction pipeline complete, ready for 02-02 (Semantic Date Extraction)
 Resume file: None
 
 ---
