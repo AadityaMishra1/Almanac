@@ -2,25 +2,24 @@
 
 import * as React from "react";
 import { UploadDropzone } from "@/components/upload-dropzone";
-import { EventsTable } from "@/components/events-table";
-import type { SyllabusEvent } from "@/lib/events";
+import { EventsPreviewTable } from "@/components/events-preview-table";
 import { syncEventsToCalendar } from "@/app/server-actions/calendar";
 import { Button } from "@/components/ui/button";
 import { useSession } from "next-auth/react";
 import { getEvents } from "@/app/server-actions/events";
-import type { Event } from "@prisma/client";
-import { prismaEventToSyllabus } from "@/lib/events";
+import type { EventWithConfidence, ExtractionMetadata } from "@/lib/events/types";
 
-type Row = SyllabusEvent & { selected: boolean; id?: string };
+type PreviewRow = EventWithConfidence & { selected: boolean; id?: string };
 
 export function SyllabusToCalendar() {
   const { data: session } = useSession();
-  const [rows, setRows] = React.useState<Row[]>([]);
+  const [rows, setRows] = React.useState<PreviewRow[]>([]);
   const [isParsing, setIsParsing] = React.useState(false);
   const [isSyncing, setIsSyncing] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [courseId, setCourseId] = React.useState<string | null>(null);
   const [courseName, setCourseName] = React.useState("");
+  const [extractionMeta, setExtractionMeta] = React.useState<ExtractionMetadata | null>(null);
 
   async function handlePdf(file: File) {
     setIsParsing(true);
@@ -42,29 +41,49 @@ export function SyllabusToCalendar() {
       const json = await res.json();
       if (!res.ok) throw new Error(json?.error ?? "Parse failed");
 
-      // Parse response contains { success, courseId, courseName, eventIds, events }
-      const { courseId: parsedCourseId, eventIds } = json;
+      // Parse response contains { success, courseId, courseName, eventIds, events, metadata }
+      const { courseId: parsedCourseId, events: eventsWithConfidence, metadata } = json;
 
-      if (!parsedCourseId || !eventIds) {
-        throw new Error("Invalid parse response: missing courseId or eventIds");
+      if (!parsedCourseId || !eventsWithConfidence || !metadata) {
+        throw new Error("Invalid parse response: missing required fields");
       }
 
       // Store course ID for sync
       setCourseId(parsedCourseId);
 
-      // Load events from database by course ID (not using transient parse response)
+      // Store extraction metadata
+      setExtractionMeta(metadata);
+
+      // Load events from database by course ID
       const eventsResult = await getEvents({ courseId: parsedCourseId });
 
       if (!eventsResult.ok) {
         throw new Error(eventsResult.error);
       }
 
-      // Convert database events to UI format and add selection state
-      const loadedRows = eventsResult.events.map((dbEvent) => ({
-        ...prismaEventToSyllabus(dbEvent),
-        selected: true,
-        id: dbEvent.id, // Store database ID for sync
-      }));
+      // Merge database events with confidence data from parse response
+      // Match by title + date, attach confidence from response
+      const loadedRows: PreviewRow[] = eventsResult.events.map((dbEvent) => {
+        // Find matching event with confidence from parse response
+        const confidenceEvent = eventsWithConfidence.find(
+          (e: EventWithConfidence) => e.title === dbEvent.title && e.date === dbEvent.date
+        );
+
+        return {
+          title: dbEvent.title,
+          date: dbEvent.date,
+          type: dbEvent.type as EventWithConfidence["type"],
+          description: dbEvent.description || "",
+          confidence: confidenceEvent?.confidence || {
+            overall: 0.5,
+            date_extracted: false,
+            type_inferred: true,
+            reasoning: "No confidence data available",
+          },
+          selected: confidenceEvent ? confidenceEvent.confidence.overall >= 0.6 : true,
+          id: dbEvent.id,
+        };
+      });
 
       setRows(loadedRows);
     } catch (e) {
@@ -95,11 +114,24 @@ export function SyllabusToCalendar() {
       if (courseId) {
         const eventsResult = await getEvents({ courseId });
         if (eventsResult.ok) {
-          const reloadedRows = eventsResult.events.map((dbEvent) => ({
-            ...prismaEventToSyllabus(dbEvent),
-            selected: rows.find((r) => r.id === dbEvent.id)?.selected ?? false,
-            id: dbEvent.id,
-          }));
+          const reloadedRows: PreviewRow[] = eventsResult.events.map((dbEvent) => {
+            // Preserve confidence data and selection state from current rows
+            const existingRow = rows.find((r) => r.id === dbEvent.id);
+            return {
+              title: dbEvent.title,
+              date: dbEvent.date,
+              type: dbEvent.type as EventWithConfidence["type"],
+              description: dbEvent.description || "",
+              confidence: existingRow?.confidence || {
+                overall: 0.5,
+                date_extracted: false,
+                type_inferred: true,
+                reasoning: "No confidence data available",
+              },
+              selected: existingRow?.selected ?? false,
+              id: dbEvent.id,
+            };
+          });
           setRows(reloadedRows);
         }
       }
@@ -139,6 +171,21 @@ export function SyllabusToCalendar() {
 
       {rows.length ? (
         <div className="space-y-4">
+          {/* Extraction metadata banner */}
+          {extractionMeta ? (
+            <div className="rounded-md border border-zinc-200 bg-zinc-50 p-3 text-sm text-zinc-700">
+              <div className="font-medium">
+                Extracted {extractionMeta.totalEvents} event{extractionMeta.totalEvents !== 1 ? "s" : ""} via{" "}
+                {extractionMeta.method === "ocr" ? "OCR (scanned PDF)" : "text extraction"} from{" "}
+                {extractionMeta.pageCount} page{extractionMeta.pageCount !== 1 ? "s" : ""}.
+              </div>
+              <div className="mt-1 text-xs text-zinc-600">
+                {extractionMeta.highConfidence} high confidence | {extractionMeta.needsReview} need review
+                {extractionMeta.method === "ocr" ? " • OCR was used - please review dates carefully" : ""}
+              </div>
+            </div>
+          ) : null}
+
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="text-sm text-zinc-600">
               {selectedCount} selected / {rows.length} extracted
@@ -151,9 +198,9 @@ export function SyllabusToCalendar() {
               {session?.accessToken ? (isSyncing ? "Syncing..." : "Sync to Google Calendar") : "Sign in to sync"}
             </Button>
           </div>
-          <EventsTable rows={rows} onChange={setRows} />
+          <EventsPreviewTable rows={rows} onChange={setRows} />
           <div className="text-xs text-zinc-500">
-            Tip: Edit titles/dates before syncing. Dates are treated as all-day events.
+            Tip: Edit titles/dates/types before syncing. Low-confidence events are highlighted for review.
           </div>
         </div>
       ) : null}
