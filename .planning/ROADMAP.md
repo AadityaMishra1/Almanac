@@ -105,10 +105,12 @@ Plans:
   5. Events sync bidirectionally with Google Calendar (fetch external events, push Almanac events)
   6. System prevents duplicate events during sync using event ID mapping
 
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
-- TBD during planning
+- [ ] 04-01-PLAN.md — Event creation modal (FAB + toolbar + slot click) and event deletion with two-step confirmation
+- [ ] 04-02-PLAN.md — Bidirectional Google Calendar sync engine with dedup, sync status indicator, and auto/manual sync
+- [ ] 04-03-PLAN.md — Conflict detection and resolution modal with field-level merge, plus E2E verification checkpoint
 
 ### Phase 5: AI Chat Interface
 **Goal**: Allow students to modify events using natural language ("move exam to Friday", "delete all readings") instead of manual editing
@@ -141,7 +143,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | 1. Data Foundation | 4/4 | ✓ Complete | 2026-02-02 |
 | 2. Enhanced PDF Extraction | 5/5 | ✓ Complete | 2026-02-02 |
 | 3. Calendar UI | 3/3 | ✓ Complete | 2026-02-02 |
-| 4. Event Management & Sync | 0/TBD | Not started | - |
+| 4. Event Management & Sync | 0/3 | Not started | - |
 | 5. AI Chat Interface | 0/TBD | Not started | - |
 
 ---
