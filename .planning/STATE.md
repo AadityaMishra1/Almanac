@@ -11,29 +11,29 @@ See: .planning/PROJECT.md (updated 2026-02-01)
 ## Current Position
 
 Phase: 2 of 5 (Enhanced PDF Extraction) - In Progress
-Plan: 2 of 5 in phase (02-01, 02-02 complete)
-Status: Phase 2 active - Confidence scoring system complete
-Last activity: 2026-02-02 — Completed 02-02-PLAN.md (Confidence Scoring System)
+Plan: 3 of 5 in phase (02-01, 02-02, 02-03 complete)
+Status: Phase 2 active - Parse API integration complete
+Last activity: 2026-02-02 — Completed 02-03-PLAN.md (Parse API Integration)
 
-Progress: [██░░░░░░░░] 24% (2/5 phase 2 plans complete, 1.4/5 phases overall)
+Progress: [███░░░░░░░] 30% (3/5 phase 2 plans complete, 1.6/5 phases overall)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 6
-- Average duration: 7 minutes
-- Total execution time: 0.65 hours (41 minutes)
+- Total plans completed: 7
+- Average duration: 6 minutes
+- Total execution time: 0.75 hours (45 minutes)
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 01-data-foundation | 4/4 | 33min | 8min |
-| 02-enhanced-pdf-extraction | 2/5 | 8min | 4min |
+| 02-enhanced-pdf-extraction | 3/5 | 12min | 4min |
 
 **Recent Trend:**
-- Last 5 plans: 01-03a (2min), 01-03b (8min), 02-01 (3min), 02-02 (5min)
-- Trend: Phase 2 maintaining fast velocity with TDD approach
+- Last 5 plans: 01-03b (8min), 02-01 (3min), 02-02 (5min), 02-03 (4min)
+- Trend: Phase 2 maintaining fast velocity (4min avg), excellent momentum
 
 *Updated after each plan completion*
 
@@ -94,6 +94,14 @@ Recent decisions affecting current work:
 - TDD approach for pure functions (validate, categorize) with 21 tests passing
 - EventWithConfidence type provides structured confidence metadata (overall, date_extracted, type_inferred, reasoning)
 
+**From 02-03 (Parse API Integration):**
+- Heuristic table detection using tabs, pipes, and multi-space alignment for spreadsheet PDFs
+- Combined text and table data in LLM prompt for better event extraction from structured syllabi
+- Parse API returns events with confidence scores and extraction metadata (method, pageCount, stats)
+- confidenceEventToCreateInput bridge function converts EventWithConfidence to database format
+- Semester now accepted from form data (removes hardcoded "Spring 2026" limitation)
+- Response metadata includes totalEvents, highConfidence, needsReview counts for UI
+
 ### Pending Todos
 
 None yet.
@@ -109,18 +117,19 @@ None yet.
 **From 01-03b End-to-End Testing:**
 - **PDF parsing quality issues (Phase 2 scope):**
   - Image-based PDFs fail without OCR (✅ RESOLVED in 02-01 - Tesseract OCR pipeline now active)
-  - Groq invalid JSON errors on some PDFs (⚠️ MITIGATED in 02-02 - graceful fallback, still needs 02-03 robustness) - HIGH urgency
+  - Spreadsheet-based PDFs miss events (✅ RESOLVED in 02-03 - table extraction now active)
+  - Groq invalid JSON errors on some PDFs (✅ RESOLVED in 02-02/02-03 - graceful fallback with empty array)
   - Wrong dates extracted (⚠️ PARTIALLY RESOLVED in 02-02 - validation catches out-of-bounds, still needs 02-04 semantic) - HIGH urgency
   - Missing event categorization (✅ RESOLVED in 02-02 - type inference with confidence tracking)
 - **OAuth token expiry:** Sync fails with expired token despite user signed in (token refresh needed) - MEDIUM urgency
 - **Manual course input:** User types name for each upload (Phase 2 will automate with LLM) - MEDIUM urgency
-- **Hardcoded semester:** All courses default to "Spring 2026" (Phase 2 will extract from PDF) - LOW urgency
+- **Hardcoded semester:** All courses default to "Spring 2026" (✅ RESOLVED in 02-03 - API accepts semester param)
 - **Derived course codes:** "DATA-STRUCTURES" instead of canonical "CSC 316" (Phase 2 will fix) - LOW urgency
 
 ## Session Continuity
 
-Last session: 2026-02-02T06:37:14Z — Completed 02-02-PLAN.md
-Stopped at: Confidence scoring system complete, ready for 02-03 (LLM JSON Robustness)
+Last session: 2026-02-02T06:42:46Z — Completed 02-03-PLAN.md
+Stopped at: Parse API integration complete, ready for 02-04 (Semantic Date Validation)
 Resume file: None
 
 ---
