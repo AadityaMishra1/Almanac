@@ -10,29 +10,29 @@ See: .planning/PROJECT.md (updated 2026-02-01)
 
 ## Current Position
 
-Phase: 1 of 5 (Data Foundation)
-Plan: 3 of 4 (completed 01-03a-PLAN.md)
-Status: In progress
-Last activity: 2026-02-02 — Completed 01-03a-PLAN.md (Database Persistence for PDF Parsing)
+Phase: 1 of 1 (Data Foundation)
+Plan: 4 of 4 (completed 01-03b-PLAN.md)
+Status: Phase complete
+Last activity: 2026-02-02 — Completed 01-03b-PLAN.md (UI and Sync Integration with Database)
 
-Progress: [███░░░░░░░] 75%
+Progress: [████████████] 100%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 3
+- Total plans completed: 4
 - Average duration: 8 minutes
-- Total execution time: 0.42 hours
+- Total execution time: 0.53 hours (33 minutes)
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| 01-data-foundation | 3/4 | 25min | 8min |
+| 01-data-foundation | 4/4 | 33min | 8min |
 
 **Recent Trend:**
-- Last 5 plans: 01-01 (2min), 01-02 (21min), 01-03a (2min)
-- Trend: Accelerating with autonomous execution
+- Last 5 plans: 01-01 (2min), 01-02 (21min), 01-03a (2min), 01-03b (8min)
+- Trend: Phase 1 complete with consistent execution speed
 
 *Updated after each plan completion*
 
@@ -70,6 +70,13 @@ Recent decisions affecting current work:
 - Hardcoded "Spring 2026" semester (Phase 2 will extract from PDF)
 - Parse endpoint returns event IDs + backward-compatible events array (removed in 01-03b)
 
+**From 01-03b (UI and Sync Integration with Database):**
+- UI loads events from database after parsing (database as source of truth)
+- syncEventsToCalendar accepts event IDs and populates googleEventId for bidirectional sync
+- Course context embedded in Google Calendar description
+- Breaking changes verified with full end-to-end integration testing
+- Phase 1 Data Foundation complete
+
 ### Pending Todos
 
 None yet.
@@ -82,15 +89,20 @@ None yet.
 - Google Calendar sync conflict resolution (need idempotent sync, event ID mapping)
 - Mobile responsiveness is critical (60% mobile traffic expected, must be mobile-first)
 
-**From 01-03a:**
-- Hardcoded semester: All courses default to "Spring 2026" (Phase 2 will extract from PDF) - LOW urgency
-- Derived course codes: "DATA-STRUCTURES" instead of canonical "CSC 316" (Phase 2 will fix) - LOW urgency
-- Manual course input: User types name for each upload (Phase 2 will automate) - MEDIUM urgency
+**From 01-03b End-to-End Testing:**
+- **PDF parsing quality issues (Phase 2 scope):**
+  - Image-based PDFs fail without OCR (Phase 2 PDF-01 will add Tesseract) - HIGH urgency
+  - Groq invalid JSON errors on some PDFs (Phase 2 PDF-03/04 will improve accuracy) - HIGH urgency
+  - Wrong dates extracted (open vs due dates - Phase 2 PDF-04 semantic understanding) - HIGH urgency
+- **OAuth token expiry:** Sync fails with expired token despite user signed in (token refresh needed) - MEDIUM urgency
+- **Manual course input:** User types name for each upload (Phase 2 will automate with LLM) - MEDIUM urgency
+- **Hardcoded semester:** All courses default to "Spring 2026" (Phase 2 will extract from PDF) - LOW urgency
+- **Derived course codes:** "DATA-STRUCTURES" instead of canonical "CSC 316" (Phase 2 will fix) - LOW urgency
 
 ## Session Continuity
 
-Last session: 2026-02-02T03:47:07Z — Completed 01-03a-PLAN.md
-Stopped at: Database persistence added to PDF parsing, ready for 01-03b (UI update)
+Last session: 2026-02-02T04:10:22Z — Completed 01-03b-PLAN.md
+Stopped at: Phase 1 Data Foundation complete, ready for Phase 2 (Smart Parsing)
 Resume file: None
 
 ---
