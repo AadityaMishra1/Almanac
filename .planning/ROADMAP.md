@@ -83,10 +83,12 @@ Plans:
   9. Calendar shows current date/time indicator to orient user
   10. Calendar displays all-day events above timeline in day/week views
 
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
-- TBD during planning
+- [ ] 03-01-PLAN.md — Install react-big-calendar, create calendar utilities, build CalendarView with custom toolbar and /calendar page
+- [ ] 03-02-PLAN.md — Add event color-coding, NCSU academic overlay, conflict detection, and event detail modal with inline editing
+- [ ] 03-03-PLAN.md — Mobile responsiveness (auto day view, compact toolbar, touch targets) and end-to-end verification checkpoint
 
 ### Phase 4: Event Management & Sync
 **Goal**: Enable complete event lifecycle management (create, edit, delete) with bidirectional Google Calendar synchronization that prevents duplicates and respects source authority
@@ -138,7 +140,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 |-------|----------------|--------|-----------|
 | 1. Data Foundation | 4/4 | ✓ Complete | 2026-02-02 |
 | 2. Enhanced PDF Extraction | 5/5 | ✓ Complete | 2026-02-02 |
-| 3. Calendar UI | 0/TBD | Not started | - |
+| 3. Calendar UI | 0/3 | In progress | - |
 | 4. Event Management & Sync | 0/TBD | Not started | - |
 | 5. AI Chat Interface | 0/TBD | Not started | - |
 
