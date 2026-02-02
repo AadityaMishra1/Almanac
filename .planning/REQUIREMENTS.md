@@ -7,25 +7,25 @@
 
 ### PDF Extraction
 
-- [ ] **PDF-01**: System handles scanned/image-based PDFs using open-source OCR (Tesseract)
-- [ ] **PDF-02**: System handles Excel/spreadsheet-based PDFs
-- [ ] **PDF-03**: System auto-categorizes events as exam/quiz/assignment/reading
-- [ ] **PDF-04**: User sees extraction preview with confidence scores before syncing
-- [ ] **PDF-05**: User can manually correct misidentified dates or event types in preview
+- [x] **PDF-01**: System handles scanned/image-based PDFs using open-source OCR (Tesseract) ✓
+- [x] **PDF-02**: System handles Excel/spreadsheet-based PDFs ✓
+- [x] **PDF-03**: System auto-categorizes events as exam/quiz/assignment/reading ✓
+- [x] **PDF-04**: User sees extraction preview with confidence scores before syncing ✓
+- [x] **PDF-05**: User can manually correct misidentified dates or event types in preview ✓
 
 ### Calendar View
 
-- [ ] **CAL-01**: User can switch between month/week/day calendar views
-- [ ] **CAL-02**: User can click event to view full details in modal/sidebar
-- [ ] **CAL-03**: User can edit event details inline from calendar view
-- [ ] **CAL-04**: Events are color-coded by course or event type
-- [ ] **CAL-05**: Calendar highlights conflicting events (overlapping times)
-- [ ] **CAL-06**: Calendar shows NCSU academic calendar overlay (semester dates, breaks, finals)
-- [ ] **CAL-07**: Calendar view is fully responsive on mobile devices
-- [ ] **CAL-08**: User can navigate dates with previous/next buttons and date picker
-- [ ] **CAL-09**: Calendar shows current date/time indicator
-- [ ] **CAL-10**: Calendar displays all-day events above timeline
-- [ ] **CAL-11**: User can see "Today" button to return to current date
+- [x] **CAL-01**: User can switch between month/week/day calendar views ✓
+- [x] **CAL-02**: User can click event to view full details in modal/sidebar ✓
+- [x] **CAL-03**: User can edit event details inline from calendar view ✓
+- [x] **CAL-04**: Events are color-coded by course or event type ✓
+- [x] **CAL-05**: Calendar highlights conflicting events (overlapping times) ✓
+- [x] **CAL-06**: Calendar shows NCSU academic calendar overlay (semester dates, breaks, finals) ✓
+- [x] **CAL-07**: Calendar view is fully responsive on mobile devices ✓
+- [x] **CAL-08**: User can navigate dates with previous/next buttons and date picker ✓
+- [x] **CAL-09**: Calendar shows current date/time indicator ✓
+- [x] **CAL-10**: Calendar displays all-day events above timeline ✓
+- [x] **CAL-11**: User can see "Today" button to return to current date ✓
 
 ### AI Chat Interface
 

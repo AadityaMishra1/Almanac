@@ -13,8 +13,8 @@ This roadmap transforms Almanac from a basic text-based PDF parser into a compre
 Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Data Foundation** - Establish event storage with source authority and permission enforcement ✓
-- [ ] **Phase 2: Enhanced PDF Extraction** - Extend parsing to handle scanned/image PDFs and spreadsheet layouts
-- [ ] **Phase 3: Calendar UI** - Build month/week/day calendar views with mobile-responsive interface
+- [x] **Phase 2: Enhanced PDF Extraction** - Extend parsing to handle scanned/image PDFs and spreadsheet layouts ✓
+- [x] **Phase 3: Calendar UI** - Build month/week/day calendar views with mobile-responsive interface ✓
 - [ ] **Phase 4: Event Management & Sync** - Implement CRUD operations and bidirectional Google Calendar sync
 - [ ] **Phase 5: AI Chat Interface** - Enable natural language event editing and bulk operations
 
@@ -86,9 +86,9 @@ Plans:
 **Plans**: 3 plans
 
 Plans:
-- [ ] 03-01-PLAN.md — Install react-big-calendar, create calendar utilities, build CalendarView with custom toolbar and /calendar page
-- [ ] 03-02-PLAN.md — Add event color-coding, NCSU academic overlay, conflict detection, and event detail modal with inline editing
-- [ ] 03-03-PLAN.md — Mobile responsiveness (auto day view, compact toolbar, touch targets) and end-to-end verification checkpoint
+- [x] 03-01-PLAN.md — Install react-big-calendar, create calendar utilities, build CalendarView with custom toolbar and /calendar page
+- [x] 03-02-PLAN.md — Add event color-coding, NCSU academic overlay, conflict detection, and event detail modal with inline editing
+- [x] 03-03-PLAN.md — Mobile responsiveness (auto day view, compact toolbar, touch targets) and end-to-end verification checkpoint
 
 ### Phase 4: Event Management & Sync
 **Goal**: Enable complete event lifecycle management (create, edit, delete) with bidirectional Google Calendar synchronization that prevents duplicates and respects source authority
@@ -140,7 +140,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 |-------|----------------|--------|-----------|
 | 1. Data Foundation | 4/4 | ✓ Complete | 2026-02-02 |
 | 2. Enhanced PDF Extraction | 5/5 | ✓ Complete | 2026-02-02 |
-| 3. Calendar UI | 0/3 | In progress | - |
+| 3. Calendar UI | 3/3 | ✓ Complete | 2026-02-02 |
 | 4. Event Management & Sync | 0/TBD | Not started | - |
 | 5. AI Chat Interface | 0/TBD | Not started | - |
 
