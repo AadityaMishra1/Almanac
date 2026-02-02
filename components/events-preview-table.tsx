@@ -39,7 +39,7 @@ export function EventsPreviewTable({ rows, onChange }: EventsPreviewTableProps) 
 
           return (
             <TableRow
-              key={`${row.title}-${row.date}-${idx}`}
+              key={row.id || `row-${idx}`}
               className={isLowConfidence ? "border-l-4 border-l-red-400 bg-red-50/30" : ""}
             >
               <TableCell>

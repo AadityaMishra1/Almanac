@@ -13,11 +13,21 @@ export async function extractTextViaOCR(buffer: Buffer): Promise<string> {
     // Dynamic import of pdfjs-dist to avoid server-side initialization issues
     const pdfjsLib = await import("pdfjs-dist/legacy/build/pdf.mjs");
 
-    // Disable worker for Node.js environment
+    // Configure for Node.js environment
     pdfjsLib.GlobalWorkerOptions.workerSrc = "";
 
+    // Polyfill canvas for Node.js (pdfjs expects browser Canvas API)
+    if (typeof globalThis.CanvasRenderingContext2D === 'undefined') {
+      const { Canvas } = await import('canvas');
+      (globalThis as any).CanvasRenderingContext2D = Canvas as any;
+    }
+
     // Load PDF document
-    const pdf = await pdfjsLib.getDocument({ data: buffer }).promise;
+    const pdf = await pdfjsLib.getDocument({
+      data: buffer,
+      useSystemFonts: true, // Use system fonts instead of embedded (more reliable in Node.js)
+      isEvalSupported: false, // Disable eval for security in server environment
+    }).promise;
     const pageCount = pdf.numPages;
 
     // Initialize Tesseract worker

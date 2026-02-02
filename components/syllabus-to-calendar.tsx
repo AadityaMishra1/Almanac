@@ -72,18 +72,25 @@ export function SyllabusToCalendar() {
           (e: EventWithConfidence) => e.title === dbEvent.title && e.date === dbEvent.date
         );
 
+        // Determine confidence - use matched confidence or default to medium
+        const confidence = confidenceEvent?.confidence || {
+          overall: 0.5,
+          date_extracted: false,
+          type_inferred: true,
+          reasoning: "No confidence data available",
+        };
+
+        // Pre-select only if confidence >= 0.6 (high or medium confidence)
+        // Low confidence events (< 0.6) are deselected for user review
+        const selected = confidence.overall >= 0.6;
+
         return {
           title: dbEvent.title,
           date: dbEvent.date,
           type: dbEvent.type as EventWithConfidence["type"],
           description: dbEvent.description || "",
-          confidence: confidenceEvent?.confidence || {
-            overall: 0.5,
-            date_extracted: false,
-            type_inferred: true,
-            reasoning: "No confidence data available",
-          },
-          selected: confidenceEvent ? confidenceEvent.confidence.overall >= 0.6 : true,
+          confidence,
+          selected,
           id: dbEvent.id,
         };
       });
