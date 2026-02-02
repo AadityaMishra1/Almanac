@@ -1,0 +1,50 @@
+import { getEvents } from "@/app/server-actions/events";
+import { CalendarView } from "@/components/calendar/calendar-view";
+import Link from "next/link";
+import { Upload } from "lucide-react";
+
+export default async function CalendarPage() {
+  const result = await getEvents();
+
+  if (!result.ok) {
+    return (
+      <main className="mx-auto flex min-h-screen w-full max-w-7xl flex-col gap-8 p-4">
+        <header className="flex items-center justify-between">
+          <h1 className="text-2xl font-semibold tracking-tight">Calendar</h1>
+          <Link
+            href="/"
+            className="flex items-center gap-2 text-sm text-zinc-600 hover:text-zinc-900"
+          >
+            <Upload className="h-4 w-4" />
+            Upload Syllabus
+          </Link>
+        </header>
+        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800">
+          Error loading events: {result.error}
+        </div>
+      </main>
+    );
+  }
+
+  return (
+    <main className="mx-auto flex min-h-screen w-full max-w-7xl flex-col gap-4 p-4">
+      <header className="flex items-center justify-between">
+        <div className="space-y-1">
+          <h1 className="text-2xl font-semibold tracking-tight">Calendar</h1>
+          <p className="text-sm text-zinc-600">
+            View and manage your academic events
+          </p>
+        </div>
+        <Link
+          href="/"
+          className="flex items-center gap-2 text-sm text-zinc-600 hover:text-zinc-900"
+        >
+          <Upload className="h-4 w-4" />
+          Upload Syllabus
+        </Link>
+      </header>
+
+      <CalendarView events={result.events} />
+    </main>
+  );
+}

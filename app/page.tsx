@@ -1,5 +1,7 @@
 import { AuthButton } from "@/components/auth-button";
 import { SyllabusToCalendar } from "@/components/syllabus-to-calendar";
+import Link from "next/link";
+import { Calendar } from "lucide-react";
 
 export default function Page() {
   return (
@@ -11,7 +13,16 @@ export default function Page() {
             Upload a PDF syllabus, review extracted due dates, then sync to your calendar.
           </p>
         </div>
-        <AuthButton />
+        <div className="flex items-center gap-4">
+          <Link
+            href="/calendar"
+            className="flex items-center gap-2 text-sm text-zinc-600 hover:text-zinc-900"
+          >
+            <Calendar className="h-4 w-4" />
+            View Calendar
+          </Link>
+          <AuthButton />
+        </div>
       </header>
 
       <SyllabusToCalendar />
