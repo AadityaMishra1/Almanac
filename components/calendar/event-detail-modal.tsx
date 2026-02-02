@@ -14,7 +14,8 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { updateEvent } from '@/app/server-actions/events';
+import { updateEvent, deleteEvent } from '@/app/server-actions/events';
+import { deleteGoogleCalendarEvent } from '@/app/server-actions/calendar';
 
 /**
  * Calendar event type (matches CalendarView).
@@ -32,6 +33,7 @@ interface CalendarEvent {
   description?: string;
   editable: boolean;
   isConflicting?: boolean;
+  googleEventId?: string | null;
 }
 
 interface EventDetailModalProps {
@@ -39,6 +41,7 @@ interface EventDetailModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onEventUpdated: (updatedEvent: CalendarEvent) => void;
+  onEventDeleted: () => void;
 }
 
 const EVENT_TYPES = [
@@ -54,15 +57,19 @@ const EVENT_TYPES = [
 /**
  * Event detail modal with inline editing.
  */
+type DeleteState = 'idle' | 'armed' | 'deleting';
+
 export function EventDetailModal({
   event,
   open,
   onOpenChange,
   onEventUpdated,
+  onEventDeleted,
 }: EventDetailModalProps) {
   const router = useRouter();
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [deleteState, setDeleteState] = useState<DeleteState>('idle');
   const [error, setError] = useState<string | null>(null);
   const [editValues, setEditValues] = useState({
     title: '',
@@ -83,9 +90,20 @@ export function EventDetailModal({
         isAllDay: event.allDay,
       });
       setIsEditing(false);
+      setDeleteState('idle');
       setError(null);
     }
   }, [event]);
+
+  // Auto-reset armed state after 3 seconds
+  useEffect(() => {
+    if (deleteState === 'armed') {
+      const timer = setTimeout(() => {
+        setDeleteState('idle');
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [deleteState]);
 
   if (!event) return null;
 
@@ -167,6 +185,51 @@ export function EventDetailModal({
       isAllDay: checked,
       time: checked ? '' : prev.time || '09:00',
     }));
+  };
+
+  const handleDeleteClick = async () => {
+    if (!event) return;
+
+    if (deleteState === 'idle') {
+      // First click: arm the delete
+      setDeleteState('armed');
+      return;
+    }
+
+    if (deleteState === 'armed') {
+      // Second click: execute deletion
+      setDeleteState('deleting');
+      setError(null);
+
+      try {
+        // Delete from local database
+        const result = await deleteEvent(event.id);
+
+        if (!result.ok) {
+          setError(result.error);
+          setDeleteState('idle');
+          return;
+        }
+
+        // If event was synced to Google Calendar, delete from there too
+        if (event.googleEventId) {
+          await deleteGoogleCalendarEvent(event.googleEventId);
+          // Note: We don't check the result here because we allow local deletion
+          // even if Google Calendar deletion fails (event might have been deleted already)
+        }
+
+        // Trigger server-side refetch
+        router.refresh();
+
+        // Close modal and notify parent
+        onEventDeleted();
+        onOpenChange(false);
+        setDeleteState('idle');
+      } catch (e) {
+        setError(e instanceof Error ? e.message : 'Failed to delete event');
+        setDeleteState('idle');
+      }
+    }
   };
 
   return (
@@ -322,11 +385,32 @@ export function EventDetailModal({
         <DialogFooter className="flex-col sm:flex-row gap-2">
           {!isEditing && (
             <>
-              {event.editable && (
-                <Button onClick={handleEdit} variant="default" className="w-full sm:w-auto">
-                  Edit
-                </Button>
-              )}
+              <div className="flex gap-2 w-full sm:w-auto">
+                {event.editable && (
+                  <>
+                    <Button
+                      onClick={handleDeleteClick}
+                      variant={deleteState === 'armed' ? 'default' : 'outline'}
+                      disabled={deleteState === 'deleting'}
+                      className={
+                        deleteState === 'idle'
+                          ? 'w-full sm:w-auto text-red-600 hover:text-red-700 hover:bg-red-50'
+                          : deleteState === 'armed'
+                          ? 'w-full sm:w-auto bg-red-600 text-white hover:bg-red-700'
+                          : 'w-full sm:w-auto'
+                      }
+                    >
+                      {deleteState === 'deleting' && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                      {deleteState === 'idle' && 'Delete'}
+                      {deleteState === 'armed' && 'Confirm Delete'}
+                      {deleteState === 'deleting' && 'Deleting...'}
+                    </Button>
+                    <Button onClick={handleEdit} variant="default" className="w-full sm:w-auto">
+                      Edit
+                    </Button>
+                  </>
+                )}
+              </div>
               <DialogClose asChild>
                 <Button variant="outline" className="w-full sm:w-auto">Close</Button>
               </DialogClose>

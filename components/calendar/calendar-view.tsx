@@ -54,6 +54,7 @@ interface CalendarEvent {
   description?: string;
   editable: boolean;
   isConflicting?: boolean;
+  googleEventId?: string | null;
 }
 
 /**
@@ -107,6 +108,7 @@ function prismaEventToCalendarEvent(
     description: event.description || undefined,
     editable: event.editable,
     isConflicting: conflictingIds.has(event.id),
+    googleEventId: event.googleEventId || undefined,
   };
 }
 
@@ -268,6 +270,11 @@ export function CalendarView({ events, courses, semester = 'Spring 2026' }: Cale
     []
   );
 
+  const handleEventDeleted = useCallback(() => {
+    // Close modal after deletion
+    setSelectedEvent(null);
+  }, []);
+
   const handleSelectSlot = useCallback((slotInfo: SlotInfo) => {
     const start = slotInfo.start;
 
@@ -351,6 +358,7 @@ export function CalendarView({ events, courses, semester = 'Spring 2026' }: Cale
         open={!!selectedEvent}
         onOpenChange={(open) => !open && setSelectedEvent(null)}
         onEventUpdated={handleEventUpdated}
+        onEventDeleted={handleEventDeleted}
       />
 
       <CreateEventModal

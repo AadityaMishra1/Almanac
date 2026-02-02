@@ -77,3 +77,36 @@ export async function syncEventsToCalendar(
     return { ok: false, error: e instanceof Error ? e.message : "Calendar sync failed." };
   }
 }
+
+/**
+ * Delete event from Google Calendar.
+ * Called when user deletes a synced event (has googleEventId).
+ */
+export async function deleteGoogleCalendarEvent(
+  googleEventId: string
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  try {
+    const session = await getServerSession(authOptions);
+    const accessToken = session?.accessToken;
+    if (!accessToken) {
+      return { ok: false, error: "Not signed in (or missing Google access token)." };
+    }
+
+    const calendar = getCalendarClient(accessToken);
+
+    // Delete from Google Calendar
+    await calendar.events.delete({
+      calendarId: "primary",
+      eventId: googleEventId,
+    });
+
+    return { ok: true };
+  } catch (e) {
+    // If event doesn't exist in Google Calendar or token expired, log but don't block local deletion
+    console.warn(`Failed to delete Google Calendar event ${googleEventId}:`, e instanceof Error ? e.message : e);
+
+    // Return success anyway - local deletion should proceed
+    // User might have already deleted from Google Calendar directly
+    return { ok: true };
+  }
+}
