@@ -2,8 +2,9 @@
 
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { SyllabusEventSchema, type SyllabusEvent } from "@/lib/events";
 import { getCalendarClient } from "@/lib/google";
+import { prisma } from "@/lib/db";
+import { updateEvent } from "@/app/server-actions/events";
 
 function addDays(isoDate: string, days: number) {
   const [y, m, d] = isoDate.split("-").map(Number);
@@ -15,38 +16,64 @@ function addDays(isoDate: string, days: number) {
   return `${year}-${month}-${day}`;
 }
 
-export async function syncEventsToCalendar(events: SyllabusEvent[]): Promise<{ ok: true } | { ok: false; error: string }> {
+export async function syncEventsToCalendar(
+  eventIds: string[]
+): Promise<{ ok: true } | { ok: false; error: string }> {
   try {
     const session = await getServerSession(authOptions);
     const accessToken = session?.accessToken;
-    if (!accessToken) return { ok: false, error: "Not signed in (or missing Google access token)." };
+    if (!accessToken) {
+      return { ok: false, error: "Not signed in (or missing Google access token)." };
+    }
 
-    const parsed = events.map((e) => SyllabusEventSchema.safeParse(e));
-    const firstInvalid = parsed.find((r) => !r.success);
-    if (firstInvalid && !firstInvalid.success) {
-      return { ok: false, error: "One or more events are invalid. Please fix the title/date/type fields." };
+    // Fetch events from database by IDs
+    const events = await prisma.event.findMany({
+      where: {
+        id: { in: eventIds },
+      },
+      include: {
+        course: true,
+      },
+    });
+
+    if (events.length === 0) {
+      return { ok: false, error: "No events found to sync." };
     }
 
     const calendar = getCalendarClient(accessToken);
 
-    for (const parsedEvent of parsed) {
-      const event = parsedEvent.success ? parsedEvent.data : null;
-      if (!event) continue;
+    // Insert each event to Google Calendar and update database with googleEventId
+    for (const event of events) {
       const startDate = event.date;
       const endDate = addDays(event.date, 1);
-      await calendar.events.insert({
+
+      // Insert to Google Calendar
+      const response = await calendar.events.insert({
         calendarId: "primary",
         requestBody: {
           summary: event.title,
-          description: [event.type, event.description].filter(Boolean).join("\n\n"),
+          description: [
+            event.type,
+            event.description,
+            `Course: ${event.course.name} (${event.course.code})`,
+          ].filter(Boolean).join("\n\n"),
           start: { date: startDate },
-          end: { date: endDate }
-        }
+          end: { date: endDate },
+        },
       });
+
+      const googleEventId = response.data.id;
+
+      if (googleEventId) {
+        // Update database event with Google Calendar ID
+        await updateEvent(event.id, {
+          googleEventId,
+        });
+      }
     }
 
     return { ok: true };
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : "Calendar insert failed." };
+    return { ok: false, error: e instanceof Error ? e.message : "Calendar sync failed." };
   }
 }
