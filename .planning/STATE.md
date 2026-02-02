@@ -6,23 +6,23 @@ See: .planning/PROJECT.md (updated 2026-02-01)
 
 **Core value:** Reliable PDF extraction that works across all syllabus formats so students spend 2 minutes uploading instead of 30+ minutes manually entering dates
 
-**Current focus:** Phase 3 - Calendar UI (COMPLETE)
+**Current focus:** Phase 4 - Event Management & Sync (IN PROGRESS)
 
 ## Current Position
 
-Phase: 3 of 5 (Calendar UI) - COMPLETE
-Plan: 3 of 3 in phase (all plans complete: 03-01, 03-02, 03-03)
-Status: Phase 3 complete - Production-ready calendar with month/week/day views, mobile responsiveness, and all 11 CAL requirements verified
-Last activity: 2026-02-02 — Completed 03-03-PLAN.md (Mobile Responsiveness & Verification)
+Phase: 4 of 5 (Event Management & Sync)
+Plan: 1 of 3 in phase (04-01 complete)
+Status: In progress - Manual event creation and deletion implemented, ready for bidirectional sync
+Last activity: 2026-02-02 — Completed 04-01-PLAN.md (Event Management UI)
 
-Progress: [████████░░] 60% (12/12 plans complete, 3/5 phases overall)
+Progress: [████████░░] 65% (13/20 plans complete, 3.3/5 phases overall)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 12
+- Total plans completed: 13
 - Average duration: 11 minutes
-- Total execution time: 2.2 hours (132 minutes)
+- Total execution time: 2.3 hours (136 minutes)
 
 **By Phase:**
 
@@ -31,10 +31,11 @@ Progress: [████████░░] 60% (12/12 plans complete, 3/5 phases
 | 01-data-foundation | 4/4 | 33min | 8min |
 | 02-enhanced-pdf-extraction | 5/5 | 50min | 10min |
 | 03-calendar-ui | 3/3 | 36min | 12min |
+| 04-event-management-sync | 1/3 | 4min | 4min |
 
 **Recent Trend:**
-- Last 5 plans: 02-05 (34min), 03-01 (5min), 03-02 (3min), 03-03 (28min)
-- Trend: Phase 3 velocity increased with responsive implementation but still efficient (12min avg)
+- Last 5 plans: 03-01 (5min), 03-02 (3min), 03-03 (28min), 04-01 (4min)
+- Trend: Phase 4 starting strong with 4min execution (high efficiency on UI CRUD operations)
 
 *Updated after each plan completion*
 
@@ -152,6 +153,16 @@ Recent decisions affecting current work:
 - router.refresh() after event edit for immediate UI update (solves optimistic update issue)
 - All 11 CAL requirements verified and approved (desktop + mobile + navigation)
 
+**From 04-01 (Event Management UI):**
+- Two-step delete with auto-reset (idle → armed → action with 3-second timeout) prevents accidental deletion
+- FAB pattern for mobile create actions (fixed bottom-right, 56px size, z-index 50)
+- Calendar slot click-to-create pre-fills date/time (month view = all-day, week/day = timed)
+- Google Calendar deletion failures don't block local deletion (graceful degradation, local DB is source of truth)
+- Pre-select single course in create modal if only one exists (reduces friction)
+- DeleteState union type ('idle' | 'armed' | 'deleting') for multi-step confirmation
+- googleEventId propagated through CalendarEvent interface for sync tracking
+- onEventDeleted callback pattern for parent notification after CRUD operations
+
 ### Pending Todos
 
 None yet.
@@ -184,10 +195,10 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-02-02T14:59:12Z — Completed 03-03-PLAN.md
-Stopped at: Phase 3 Plan 3 complete - Mobile responsive calendar with all 11 CAL requirements verified
+Last session: 2026-02-02T18:34:19Z — Completed 04-01-PLAN.md
+Stopped at: Phase 4 Plan 1 complete - Event creation and deletion with two-step confirmation
 Resume file: None
-Next: 03-04 (Polish & Animations) to complete Phase 3, or Phase 4 (Advanced Parsing)
+Next: 04-02 (Bidirectional Google Calendar Sync) or 04-03 (Event Edit & Validation)
 
 ---
 *State initialized: 2026-02-01*
