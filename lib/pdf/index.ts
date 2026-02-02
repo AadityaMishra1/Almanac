@@ -32,10 +32,21 @@ export async function extractPdfContent(
 
   // Route to appropriate extraction method
   let text: string;
+  let actualMethod: "text" | "ocr" = pdfType === "text" ? "text" : "ocr";
+
   if (pdfType === "text") {
     text = await extractTextFromPdf(buffer);
   } else {
-    text = await extractTextViaOCR(buffer);
+    // Scanned PDF detected - attempt OCR with fallback to text extraction
+    try {
+      text = await extractTextViaOCR(buffer);
+    } catch (ocrError) {
+      console.error("OCR extraction failed, falling back to text extraction:", ocrError);
+      // Fallback to text extraction if OCR fails
+      // This handles pdfjs-dist initialization issues in server environments
+      text = await extractTextFromPdf(buffer);
+      actualMethod = "text"; // Mark as text since OCR failed
+    }
   }
 
   // Extract table data from the original buffer
@@ -45,7 +56,7 @@ export async function extractPdfContent(
     text,
     tables,
     metadata: {
-      method: pdfType === "text" ? "text" : "ocr",
+      method: actualMethod,
       pageCount,
       hasTableData: tables.length > 0,
     },
