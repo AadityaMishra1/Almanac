@@ -11,18 +11,18 @@ See: .planning/PROJECT.md (updated 2026-02-01)
 ## Current Position
 
 Phase: 4 of 5 (Event Management & Sync)
-Plan: 1 of 3 in phase (04-01 complete)
-Status: In progress - Manual event creation and deletion implemented, ready for bidirectional sync
-Last activity: 2026-02-02 — Completed 04-01-PLAN.md (Event Management UI)
+Plan: 2 of 3 in phase (04-01, 04-02 complete)
+Status: In progress - Bidirectional Google Calendar sync implemented, ready for event editing
+Last activity: 2026-02-02 — Completed 04-02-PLAN.md (Bidirectional Google Calendar Sync)
 
-Progress: [████████░░] 65% (13/20 plans complete, 3.3/5 phases overall)
+Progress: [████████░░] 70% (14/20 plans complete, 3.7/5 phases overall)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 13
-- Average duration: 11 minutes
-- Total execution time: 2.3 hours (136 minutes)
+- Total plans completed: 14
+- Average duration: 10 minutes
+- Total execution time: 2.3 hours (139 minutes)
 
 **By Phase:**
 
@@ -31,11 +31,11 @@ Progress: [████████░░] 65% (13/20 plans complete, 3.3/5 phas
 | 01-data-foundation | 4/4 | 33min | 8min |
 | 02-enhanced-pdf-extraction | 5/5 | 50min | 10min |
 | 03-calendar-ui | 3/3 | 36min | 12min |
-| 04-event-management-sync | 1/3 | 4min | 4min |
+| 04-event-management-sync | 2/3 | 7min | 3.5min |
 
 **Recent Trend:**
-- Last 5 plans: 03-01 (5min), 03-02 (3min), 03-03 (28min), 04-01 (4min)
-- Trend: Phase 4 starting strong with 4min execution (high efficiency on UI CRUD operations)
+- Last 5 plans: 03-02 (3min), 03-03 (28min), 04-01 (4min), 04-02 (3min)
+- Trend: Phase 4 maintaining high efficiency (3.5min avg - fastest phase so far)
 
 *Updated after each plan completion*
 
@@ -163,6 +163,18 @@ Recent decisions affecting current work:
 - googleEventId propagated through CalendarEvent interface for sync tracking
 - onEventDeleted callback pattern for parent notification after CRUD operations
 
+**From 04-02 (Bidirectional Google Calendar Sync):**
+- Modular sync architecture: separate fetch/push/engine modules for maintainability
+- GCAL catch-all course (code: GCAL, semester: External) for imported Google Calendar events
+- Duplicate prevention via googleEventId unique constraint (skip if already exists)
+- Try-catch per event: single failure doesn't block entire sync operation
+- 6-month time window for fetch (past and future) balances scope and performance
+- Smart throttling on both client and server (10-second window prevents spam)
+- Auto-sync on page load when hasGoogleAuth is true (no background intervals)
+- Dashed border + 0.7 opacity for external events (visual distinction from Almanac events)
+- SyncResult discriminated union for success/error handling with detailed feedback
+- SyncStatus state machine: idle → syncing → done/error → idle with auto-reset timers
+
 ### Pending Todos
 
 None yet.
@@ -195,10 +207,10 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-02-02T18:34:19Z — Completed 04-01-PLAN.md
-Stopped at: Phase 4 Plan 1 complete - Event creation and deletion with two-step confirmation
+Last session: 2026-02-02T18:42:13Z — Completed 04-02-PLAN.md
+Stopped at: Phase 4 Plan 2 complete - Bidirectional Google Calendar sync with status indicator
 Resume file: None
-Next: 04-02 (Bidirectional Google Calendar Sync) or 04-03 (Event Edit & Validation)
+Next: 04-03 (Event Edit & Validation) - final plan in Phase 4
 
 ---
 *State initialized: 2026-02-01*
