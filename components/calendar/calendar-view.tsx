@@ -7,6 +7,7 @@ import { CalendarToolbar } from './calendar-toolbar';
 import { CalendarEventChip } from './calendar-event';
 import { EventDetailModal } from './event-detail-modal';
 import { CreateEventModal } from './create-event-modal';
+import { ConflictResolutionModal } from './conflict-resolution-modal';
 import { getCourseColor } from '@/lib/calendar/event-colors';
 import { getAcademicDatesForSemester } from '@/lib/calendar/ncsu-academic-calendar';
 import { findConflicts, type TimeSlot } from '@/lib/calendar/conflict-detection';
@@ -18,6 +19,7 @@ import { useRouter } from 'next/navigation';
 import { syncCalendar } from '@/app/server-actions/calendar';
 import type { SyncStatus } from './sync-status-indicator';
 import type { SyncResult } from '@/lib/sync/sync-engine';
+import type { ConflictRecord } from '@/lib/sync/detect-conflicts';
 
 /**
  * Hook to detect mobile screen size (<768px).
@@ -142,6 +144,10 @@ export function CalendarView({ events, courses, semester = 'Spring 2026', hasGoo
   const lastSyncTimeRef = useRef<number>(0);
   const autoResetTimerRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Conflict resolution state
+  const [conflictsToResolve, setConflictsToResolve] = useState<ConflictRecord[]>([]);
+  const [showConflictModal, setShowConflictModal] = useState(false);
+
   // Auto-switch to day view on mobile if currently in month view
   useEffect(() => {
     if (isMobile && view === 'month') {
@@ -163,6 +169,7 @@ export function CalendarView({ events, courses, semester = 'Spring 2026', hasGoo
         fetched: 0,
         pushed: 0,
         skippedDuplicates: 0,
+        conflicts: [],
         errors: [`Synced recently. Try again in ${secondsRemaining} seconds.`],
       });
       setSyncStatus('error');
@@ -184,6 +191,14 @@ export function CalendarView({ events, courses, semester = 'Spring 2026', hasGoo
     try {
       const result = await syncCalendar();
       setLastSyncResult(result);
+
+      // Check for conflicts
+      if (result.conflicts && result.conflicts.length > 0) {
+        setSyncStatus('error');
+        setConflictsToResolve(result.conflicts);
+        setShowConflictModal(true);
+        return;
+      }
 
       if (result.ok) {
         setSyncStatus('done');
@@ -207,6 +222,7 @@ export function CalendarView({ events, courses, semester = 'Spring 2026', hasGoo
         fetched: 0,
         pushed: 0,
         skippedDuplicates: 0,
+        conflicts: [],
         errors: [error instanceof Error ? error.message : 'Sync failed'],
       });
     }
@@ -399,6 +415,12 @@ export function CalendarView({ events, courses, semester = 'Spring 2026', hasGoo
     setShowCreateModal(true);
   }, []);
 
+  const handleConflictsResolved = useCallback(() => {
+    setConflictsToResolve([]);
+    setShowConflictModal(false);
+    setSyncStatus('idle');
+  }, []);
+
   const components = useMemo(
     () => ({
       toolbar: (props: any) => (
@@ -465,6 +487,13 @@ export function CalendarView({ events, courses, semester = 'Spring 2026', hasGoo
         initialDate={createModalInitial.date}
         initialTime={createModalInitial.time}
         initialAllDay={createModalInitial.allDay}
+      />
+
+      <ConflictResolutionModal
+        conflicts={conflictsToResolve}
+        open={showConflictModal}
+        onOpenChange={setShowConflictModal}
+        onResolved={handleConflictsResolved}
       />
     </div>
   );

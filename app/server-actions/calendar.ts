@@ -132,6 +132,7 @@ export async function syncCalendar(): Promise<SyncResult> {
         fetched: 0,
         pushed: 0,
         skippedDuplicates: 0,
+        conflicts: [],
         errors: ["Not signed in (or missing Google access token)."],
       };
     }
@@ -146,6 +147,7 @@ export async function syncCalendar(): Promise<SyncResult> {
         fetched: 0,
         pushed: 0,
         skippedDuplicates: 0,
+        conflicts: [],
         errors: [`Synced recently. Try again in ${secondsRemaining} seconds.`],
       };
     }
@@ -162,7 +164,122 @@ export async function syncCalendar(): Promise<SyncResult> {
       fetched: 0,
       pushed: 0,
       skippedDuplicates: 0,
+      conflicts: [],
       errors: [e instanceof Error ? e.message : "Calendar sync failed."],
+    };
+  }
+}
+
+/**
+ * Resolve a sync conflict by applying field-level resolution.
+ * Updates both local database and Google Calendar with resolved values.
+ */
+export async function resolveConflict(
+  eventId: string,
+  resolution: { field: string; value: string | null }[]
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  try {
+    const session = await getServerSession(authOptions);
+    const accessToken = session?.accessToken;
+    if (!accessToken) {
+      return { ok: false, error: "Not signed in (or missing Google access token)." };
+    }
+
+    // Get event from database
+    const event = await prisma.event.findUnique({
+      where: { id: eventId },
+      include: { course: true },
+    });
+
+    if (!event) {
+      return { ok: false, error: "Event not found." };
+    }
+
+    if (!event.googleEventId) {
+      return { ok: false, error: "Event is not synced with Google Calendar." };
+    }
+
+    // Build update data from resolution
+    const updateData: {
+      title?: string;
+      date?: string;
+      time?: string | null;
+      description?: string;
+    } = {};
+
+    for (const { field, value } of resolution) {
+      if (field === "title" && value !== null) {
+        updateData.title = value;
+      } else if (field === "date" && value !== null) {
+        updateData.date = value;
+      } else if (field === "time") {
+        updateData.time = value;
+      } else if (field === "description") {
+        updateData.description = value || "";
+      }
+    }
+
+    // Update local database
+    await prisma.event.update({
+      where: { id: eventId },
+      data: updateData,
+    });
+
+    // Update Google Calendar
+    const calendar = getCalendarClient(accessToken);
+
+    // Build Google Calendar update request
+    const gcalUpdate: any = {};
+
+    if (updateData.title) {
+      gcalUpdate.summary = updateData.title;
+    }
+
+    if (updateData.description !== undefined) {
+      gcalUpdate.description = [
+        event.type,
+        updateData.description,
+        `Course: ${event.course.name} (${event.course.code})`,
+      ]
+        .filter(Boolean)
+        .join("\n\n");
+    }
+
+    // Handle date/time updates
+    if (updateData.date !== undefined || updateData.time !== undefined) {
+      const finalDate = updateData.date || event.date;
+      const finalTime = updateData.time !== undefined ? updateData.time : event.time;
+
+      if (finalTime) {
+        // Timed event
+        const [year, month, day] = finalDate.split("-").map(Number);
+        const [hour, minute] = finalTime.split(":").map(Number);
+        const startDt = new Date(year, month - 1, day, hour, minute);
+        const endDt = new Date(year, month - 1, day, hour + 1, minute);
+
+        gcalUpdate.start = { dateTime: startDt.toISOString() };
+        gcalUpdate.end = { dateTime: endDt.toISOString() };
+      } else {
+        // All-day event
+        const endDate = addDays(finalDate, 1);
+        gcalUpdate.start = { date: finalDate };
+        gcalUpdate.end = { date: endDate };
+      }
+    }
+
+    // Patch Google Calendar event
+    await calendar.events.patch({
+      calendarId: "primary",
+      eventId: event.googleEventId,
+      requestBody: gcalUpdate,
+    });
+
+    return { ok: true };
+  } catch (e) {
+    console.error("Failed to resolve conflict:", e);
+    return {
+      ok: false,
+      error: e instanceof Error ? e.message : "Failed to resolve conflict.",
     };
   }
 }

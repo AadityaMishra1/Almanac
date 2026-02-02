@@ -3,20 +3,23 @@ import { pushEventsToGoogle } from "./push-events";
 import { prisma } from "@/lib/db";
 import { getOrCreateCourse } from "@/app/server-actions/courses";
 import { EventSource } from "@prisma/client";
+import { detectConflicts, type ConflictRecord } from "./detect-conflicts";
 
 export interface SyncResult {
   ok: boolean;
   fetched: number; // Google events imported
   pushed: number; // Almanac events pushed to Google
   skippedDuplicates: number;
+  conflicts: ConflictRecord[];
   errors: string[];
 }
 
 /**
  * Run full bidirectional sync:
  * 1. Fetch events from Google Calendar
- * 2. Import new events (skip duplicates via googleEventId)
- * 3. Push un-synced Almanac events to Google
+ * 2. Detect conflicts (events modified in both systems)
+ * 3. Import new events (skip duplicates and conflicts)
+ * 4. Push un-synced Almanac events to Google (skip conflicts)
  */
 export async function runSync(accessToken: string): Promise<SyncResult> {
   const errors: string[] = [];
@@ -27,9 +30,46 @@ export async function runSync(accessToken: string): Promise<SyncResult> {
     // Step 1: Fetch from Google Calendar
     const googleEvents = await fetchGoogleEvents(accessToken);
 
-    // Step 2: Deduplicate and import
+    // Step 2: Detect conflicts
+    // Get all local ALMANAC events that have googleEventId (synced events)
+    const syncedLocalEvents = await prisma.event.findMany({
+      where: {
+        source: EventSource.ALMANAC,
+        googleEventId: { not: null },
+      },
+    });
+
+    const conflicts = detectConflicts(
+      syncedLocalEvents.map((e) => ({
+        id: e.id,
+        googleEventId: e.googleEventId,
+        title: e.title,
+        date: e.date,
+        time: e.time,
+        description: e.description || "",
+      })),
+      googleEvents.map((g) => ({
+        googleEventId: g.googleEventId,
+        title: g.title,
+        date: g.date,
+        time: g.time,
+        description: g.description,
+      }))
+    );
+
+    // Build set of conflicting googleEventIds to skip during import/push
+    const conflictingGoogleIds = new Set(
+      conflicts.map((c) => c.googleEventId)
+    );
+
+    // Step 3: Import new events (skip duplicates and conflicts)
     for (const gEvent of googleEvents) {
       try {
+        // Skip if this event has a conflict
+        if (conflictingGoogleIds.has(gEvent.googleEventId)) {
+          continue;
+        }
+
         // Check if event already exists by googleEventId
         const existing = await prisma.event.findUnique({
           where: { googleEventId: gEvent.googleEventId },
@@ -75,7 +115,7 @@ export async function runSync(accessToken: string): Promise<SyncResult> {
       }
     }
 
-    // Step 3: Push un-synced Almanac events to Google
+    // Step 4: Push un-synced Almanac events to Google (skip conflicts)
     const localEvents = await prisma.event.findMany({
       where: {
         source: EventSource.ALMANAC,
@@ -91,10 +131,11 @@ export async function runSync(accessToken: string): Promise<SyncResult> {
     errors.push(...pushResult.errors);
 
     return {
-      ok: errors.length === 0,
+      ok: errors.length === 0 && conflicts.length === 0,
       fetched,
       pushed,
       skippedDuplicates,
+      conflicts,
       errors,
     };
   } catch (error) {
@@ -106,6 +147,7 @@ export async function runSync(accessToken: string): Promise<SyncResult> {
       fetched,
       pushed: 0,
       skippedDuplicates,
+      conflicts: [],
       errors,
     };
   }
