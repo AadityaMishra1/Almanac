@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { format } from 'date-fns';
 import { Loader2 } from 'lucide-react';
 import {
@@ -59,6 +60,7 @@ export function EventDetailModal({
   onOpenChange,
   onEventUpdated,
 }: EventDetailModalProps) {
+  const router = useRouter();
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -146,6 +148,9 @@ export function EventDetailModal({
         allDay: editValues.isAllDay,
         type: editValues.type,
       };
+
+      // Trigger server-side refetch to get updated data
+      router.refresh();
 
       onEventUpdated(updatedEvent);
       setIsEditing(false);

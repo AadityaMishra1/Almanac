@@ -33,8 +33,8 @@ export const SPRING_2026: AcademicDate[] = [
   },
   {
     title: 'Spring Break',
-    start: new Date(2026, 2, 16), // Mar 16
-    end: new Date(2026, 2, 22), // Mar 21 end (exclusive end = 22)
+    start: new Date(2026, 2, 16, 0, 0, 0), // Mar 16 at midnight
+    end: new Date(2026, 2, 22, 0, 0, 0), // Mar 22 at midnight (end of Mar 21)
     type: 'break',
   },
   {

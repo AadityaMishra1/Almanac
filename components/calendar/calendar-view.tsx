@@ -153,9 +153,9 @@ export function CalendarView({ events, semester = 'Spring 2026' }: CalendarViewP
     [events, conflictingIds]
   );
 
-  // Convert academic dates to background events
-  // Type them as CalendarEvent to satisfy Calendar component typing
-  const backgroundEvents = useMemo(() => {
+  // Convert academic dates to calendar events (not backgroundEvents)
+  // This ensures multi-day events span properly in month view
+  const academicEvents = useMemo(() => {
     const academicDates = getAcademicDatesForSemester(semester);
     return academicDates.map((date) => ({
       id: `academic-${date.title}`,
@@ -168,9 +168,15 @@ export function CalendarView({ events, semester = 'Spring 2026' }: CalendarViewP
       courseColor: '',
       courseName: '',
       editable: false,
-      isAcademicDate: true, // Flag to distinguish academic dates
+      isAcademicDate: true, // Flag for special styling
     }));
   }, [semester]);
+
+  // Combine user events with academic calendar events
+  const allEvents = useMemo(
+    () => [...calendarEvents, ...academicEvents],
+    [calendarEvents, academicEvents]
+  );
 
   // Event color-coding via eventPropGetter
   // Also styles academic background events
@@ -234,7 +240,11 @@ export function CalendarView({ events, semester = 'Spring 2026' }: CalendarViewP
     setView(newView);
   }, []);
 
-  const onSelectEvent = useCallback((event: CalendarEvent) => {
+  const onSelectEvent = useCallback((event: CalendarEvent & { isAcademicDate?: boolean }) => {
+    // Don't open modal for academic calendar events
+    if (event.isAcademicDate) {
+      return;
+    }
     setSelectedEvent(event);
   }, []);
 
@@ -259,8 +269,7 @@ export function CalendarView({ events, semester = 'Spring 2026' }: CalendarViewP
     <div className={isMobile ? "h-[calc(100vh-80px)] w-full" : "h-[calc(100vh-120px)] w-full"}>
       <Calendar<CalendarEvent>
         localizer={localizer}
-        events={calendarEvents}
-        backgroundEvents={backgroundEvents}
+        events={allEvents}
         date={date}
         view={view}
         onNavigate={onNavigate}
