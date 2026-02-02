@@ -11,29 +11,29 @@ See: .planning/PROJECT.md (updated 2026-02-01)
 ## Current Position
 
 Phase: 2 of 5 (Enhanced PDF Extraction) - In Progress
-Plan: 1 of 5 in phase (02-01 complete)
-Status: Phase 2 active - OCR extraction pipeline complete
-Last activity: 2026-02-02 — Completed 02-01-PLAN.md (OCR Extraction Pipeline)
+Plan: 2 of 5 in phase (02-01, 02-02 complete)
+Status: Phase 2 active - Confidence scoring system complete
+Last activity: 2026-02-02 — Completed 02-02-PLAN.md (Confidence Scoring System)
 
-Progress: [██░░░░░░░░] 22% (1/5 phase 2 plans complete, 1.2/5 phases overall)
+Progress: [██░░░░░░░░] 24% (2/5 phase 2 plans complete, 1.4/5 phases overall)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 5
+- Total plans completed: 6
 - Average duration: 7 minutes
-- Total execution time: 0.58 hours (36 minutes)
+- Total execution time: 0.65 hours (41 minutes)
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 01-data-foundation | 4/4 | 33min | 8min |
-| 02-enhanced-pdf-extraction | 1/5 | 3min | 3min |
+| 02-enhanced-pdf-extraction | 2/5 | 8min | 4min |
 
 **Recent Trend:**
-- Last 5 plans: 01-02 (21min), 01-03a (2min), 01-03b (8min), 02-01 (3min)
-- Trend: Phase 2 started - first plan completed quickly (pre-existing work)
+- Last 5 plans: 01-03a (2min), 01-03b (8min), 02-01 (3min), 02-02 (5min)
+- Trend: Phase 2 maintaining fast velocity with TDD approach
 
 *Updated after each plan completion*
 
@@ -86,6 +86,14 @@ Recent decisions affecting current work:
 - Backward compatibility maintained: lib/pdf.ts re-exports for existing code
 - Legacy pdfjs-dist build required for Node.js/Next.js compatibility
 
+**From 02-02 (Confidence Scoring System):**
+- String-based date comparison for YYYY-MM-DD format (timezone-safe, lexicographically correct)
+- Rule-based confidence adjustment: out-of-semester (-0.3), inferred date (-0.2), inferred type (-0.1), weekend (-0.05)
+- Graceful LLM fallback: return empty array if parsing/validation fails (prevents crashes)
+- Enhanced prompt includes semester bounds, type categorization mapping, confidence guidelines
+- TDD approach for pure functions (validate, categorize) with 21 tests passing
+- EventWithConfidence type provides structured confidence metadata (overall, date_extracted, type_inferred, reasoning)
+
 ### Pending Todos
 
 None yet.
@@ -101,8 +109,9 @@ None yet.
 **From 01-03b End-to-End Testing:**
 - **PDF parsing quality issues (Phase 2 scope):**
   - Image-based PDFs fail without OCR (✅ RESOLVED in 02-01 - Tesseract OCR pipeline now active)
-  - Groq invalid JSON errors on some PDFs (Phase 2 02-03/04/05 will improve accuracy) - HIGH urgency
-  - Wrong dates extracted (open vs due dates - Phase 2 02-02/04/05 semantic understanding) - HIGH urgency
+  - Groq invalid JSON errors on some PDFs (⚠️ MITIGATED in 02-02 - graceful fallback, still needs 02-03 robustness) - HIGH urgency
+  - Wrong dates extracted (⚠️ PARTIALLY RESOLVED in 02-02 - validation catches out-of-bounds, still needs 02-04 semantic) - HIGH urgency
+  - Missing event categorization (✅ RESOLVED in 02-02 - type inference with confidence tracking)
 - **OAuth token expiry:** Sync fails with expired token despite user signed in (token refresh needed) - MEDIUM urgency
 - **Manual course input:** User types name for each upload (Phase 2 will automate with LLM) - MEDIUM urgency
 - **Hardcoded semester:** All courses default to "Spring 2026" (Phase 2 will extract from PDF) - LOW urgency
@@ -110,8 +119,8 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-02-02T06:30:21Z — Completed 02-01-PLAN.md
-Stopped at: OCR extraction pipeline complete, ready for 02-02 (Semantic Date Extraction)
+Last session: 2026-02-02T06:37:14Z — Completed 02-02-PLAN.md
+Stopped at: Confidence scoring system complete, ready for 02-03 (LLM JSON Robustness)
 Resume file: None
 
 ---
