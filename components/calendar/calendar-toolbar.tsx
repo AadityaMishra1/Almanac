@@ -4,10 +4,15 @@ import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, ChevronDown, Plus } from "lucide-react";
 import { Navigate, type ToolbarProps } from "react-big-calendar";
 import * as Select from "@radix-ui/react-select";
+import { SyncStatusIndicator, type SyncStatus } from "./sync-status-indicator";
+import type { SyncResult } from "@/lib/sync/sync-engine";
 
 interface CalendarToolbarProps<TEvent extends object = object> extends ToolbarProps<TEvent> {
   isMobile?: boolean;
   onCreateEvent?: () => void;
+  syncStatus?: SyncStatus;
+  lastSyncResult?: SyncResult;
+  onSync?: () => void;
 }
 
 export function CalendarToolbar<TEvent extends object = object>({
@@ -18,6 +23,9 @@ export function CalendarToolbar<TEvent extends object = object>({
   label,
   isMobile = false,
   onCreateEvent,
+  syncStatus,
+  lastSyncResult,
+  onSync,
 }: CalendarToolbarProps<TEvent>) {
   // Desktop layout
   if (!isMobile) {
@@ -54,8 +62,15 @@ export function CalendarToolbar<TEvent extends object = object>({
         {/* Center: Current date label */}
         <h2 className="text-lg font-semibold">{label}</h2>
 
-        {/* Right: New Event button + View toggle buttons */}
+        {/* Right: Sync indicator + New Event button + View toggle buttons */}
         <div className="flex items-center gap-2">
+          {syncStatus && onSync && (
+            <SyncStatusIndicator
+              status={syncStatus}
+              lastSyncResult={lastSyncResult}
+              onSync={onSync}
+            />
+          )}
           {onCreateEvent && (
             <Button
               variant="default"
@@ -122,7 +137,7 @@ export function CalendarToolbar<TEvent extends object = object>({
         </Button>
       </div>
 
-      {/* Second row: Today button and View selector */}
+      {/* Second row: Today button, sync indicator, and View selector */}
       <div className="flex items-center justify-between gap-2">
         <Button
           variant="outline"
@@ -133,42 +148,52 @@ export function CalendarToolbar<TEvent extends object = object>({
           Today
         </Button>
 
-        {/* View selector dropdown */}
-        <Select.Root value={view} onValueChange={(value) => onView(value as typeof view)}>
-          <Select.Trigger className="inline-flex items-center justify-between gap-2 rounded-md border border-zinc-200 bg-white px-4 py-2 text-sm font-medium text-zinc-900 min-h-[44px] min-w-[120px] hover:bg-zinc-50 focus:outline-none focus:ring-2 focus:ring-black">
-            <Select.Value>
-              {view === 'month' ? 'Month' : view === 'week' ? 'Week' : 'Day'}
-            </Select.Value>
-            <Select.Icon>
-              <ChevronDown className="h-4 w-4" />
-            </Select.Icon>
-          </Select.Trigger>
+        <div className="flex items-center gap-2">
+          {syncStatus && onSync && (
+            <SyncStatusIndicator
+              status={syncStatus}
+              lastSyncResult={lastSyncResult}
+              onSync={onSync}
+            />
+          )}
 
-          <Select.Portal>
-            <Select.Content className="overflow-hidden rounded-md border border-zinc-200 bg-white shadow-lg">
-              <Select.Viewport className="p-1">
-                <Select.Item
-                  value="month"
-                  className="relative flex items-center rounded px-8 py-2 text-sm text-zinc-900 outline-none cursor-pointer hover:bg-zinc-100 focus:bg-zinc-100"
-                >
-                  <Select.ItemText>Month</Select.ItemText>
-                </Select.Item>
-                <Select.Item
-                  value="week"
-                  className="relative flex items-center rounded px-8 py-2 text-sm text-zinc-900 outline-none cursor-pointer hover:bg-zinc-100 focus:bg-zinc-100"
-                >
-                  <Select.ItemText>Week</Select.ItemText>
-                </Select.Item>
-                <Select.Item
-                  value="day"
-                  className="relative flex items-center rounded px-8 py-2 text-sm text-zinc-900 outline-none cursor-pointer hover:bg-zinc-100 focus:bg-zinc-100"
-                >
-                  <Select.ItemText>Day</Select.ItemText>
-                </Select.Item>
-              </Select.Viewport>
-            </Select.Content>
-          </Select.Portal>
-        </Select.Root>
+          {/* View selector dropdown */}
+          <Select.Root value={view} onValueChange={(value) => onView(value as typeof view)}>
+            <Select.Trigger className="inline-flex items-center justify-between gap-2 rounded-md border border-zinc-200 bg-white px-4 py-2 text-sm font-medium text-zinc-900 min-h-[44px] min-w-[120px] hover:bg-zinc-50 focus:outline-none focus:ring-2 focus:ring-black">
+              <Select.Value>
+                {view === 'month' ? 'Month' : view === 'week' ? 'Week' : 'Day'}
+              </Select.Value>
+              <Select.Icon>
+                <ChevronDown className="h-4 w-4" />
+              </Select.Icon>
+            </Select.Trigger>
+
+            <Select.Portal>
+              <Select.Content className="overflow-hidden rounded-md border border-zinc-200 bg-white shadow-lg">
+                <Select.Viewport className="p-1">
+                  <Select.Item
+                    value="month"
+                    className="relative flex items-center rounded px-8 py-2 text-sm text-zinc-900 outline-none cursor-pointer hover:bg-zinc-100 focus:bg-zinc-100"
+                  >
+                    <Select.ItemText>Month</Select.ItemText>
+                  </Select.Item>
+                  <Select.Item
+                    value="week"
+                    className="relative flex items-center rounded px-8 py-2 text-sm text-zinc-900 outline-none cursor-pointer hover:bg-zinc-100 focus:bg-zinc-100"
+                  >
+                    <Select.ItemText>Week</Select.ItemText>
+                  </Select.Item>
+                  <Select.Item
+                    value="day"
+                    className="relative flex items-center rounded px-8 py-2 text-sm text-zinc-900 outline-none cursor-pointer hover:bg-zinc-100 focus:bg-zinc-100"
+                  >
+                    <Select.ItemText>Day</Select.ItemText>
+                  </Select.Item>
+                </Select.Viewport>
+              </Select.Content>
+            </Select.Portal>
+          </Select.Root>
+        </div>
       </div>
     </div>
   );

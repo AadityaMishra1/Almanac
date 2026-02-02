@@ -10,10 +10,14 @@ import { CreateEventModal } from './create-event-modal';
 import { getCourseColor } from '@/lib/calendar/event-colors';
 import { getAcademicDatesForSemester } from '@/lib/calendar/ncsu-academic-calendar';
 import { findConflicts, type TimeSlot } from '@/lib/calendar/conflict-detection';
-import { useState, useMemo, useCallback, useEffect } from 'react';
+import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import type { Course } from '@prisma/client';
+import { useRouter } from 'next/navigation';
+import { syncCalendar } from '@/app/server-actions/calendar';
+import type { SyncStatus } from './sync-status-indicator';
+import type { SyncResult } from '@/lib/sync/sync-engine';
 
 /**
  * Hook to detect mobile screen size (<768px).
@@ -116,9 +120,11 @@ interface CalendarViewProps {
   events: any[]; // Prisma events with course relation
   courses: Course[]; // Available courses for event creation
   semester?: string; // e.g., "Spring 2026"
+  hasGoogleAuth?: boolean; // Whether user is authenticated with Google
 }
 
-export function CalendarView({ events, courses, semester = 'Spring 2026' }: CalendarViewProps) {
+export function CalendarView({ events, courses, semester = 'Spring 2026', hasGoogleAuth = false }: CalendarViewProps) {
+  const router = useRouter();
   const isMobile = useIsMobile();
   const [date, setDate] = useState<Date>(new Date());
   const [view, setView] = useState<View>('month');
@@ -130,12 +136,97 @@ export function CalendarView({ events, courses, semester = 'Spring 2026' }: Cale
     allDay?: boolean;
   }>({});
 
+  // Sync state management
+  const [syncStatus, setSyncStatus] = useState<SyncStatus>('idle');
+  const [lastSyncResult, setLastSyncResult] = useState<SyncResult | undefined>();
+  const lastSyncTimeRef = useRef<number>(0);
+  const autoResetTimerRef = useRef<NodeJS.Timeout | null>(null);
+
   // Auto-switch to day view on mobile if currently in month view
   useEffect(() => {
     if (isMobile && view === 'month') {
       setView('day');
     }
   }, [isMobile]);
+
+  // Handle sync operation
+  const handleSync = useCallback(async () => {
+    // Client-side rate limiting check
+    const now = Date.now();
+    const timeSinceLastSync = now - lastSyncTimeRef.current;
+    const THROTTLE_MS = 10_000; // 10 seconds
+
+    if (timeSinceLastSync < THROTTLE_MS && lastSyncTimeRef.current > 0) {
+      const secondsRemaining = Math.ceil((THROTTLE_MS - timeSinceLastSync) / 1000);
+      setLastSyncResult({
+        ok: false,
+        fetched: 0,
+        pushed: 0,
+        skippedDuplicates: 0,
+        errors: [`Synced recently. Try again in ${secondsRemaining} seconds.`],
+      });
+      setSyncStatus('error');
+
+      // Auto-reset to idle after 3 seconds
+      if (autoResetTimerRef.current) {
+        clearTimeout(autoResetTimerRef.current);
+      }
+      autoResetTimerRef.current = setTimeout(() => {
+        setSyncStatus('idle');
+      }, 3000);
+      return;
+    }
+
+    // Update last sync time and set status
+    lastSyncTimeRef.current = now;
+    setSyncStatus('syncing');
+
+    try {
+      const result = await syncCalendar();
+      setLastSyncResult(result);
+
+      if (result.ok) {
+        setSyncStatus('done');
+        // Refresh page to show new events
+        router.refresh();
+
+        // Auto-reset to idle after 5 seconds
+        if (autoResetTimerRef.current) {
+          clearTimeout(autoResetTimerRef.current);
+        }
+        autoResetTimerRef.current = setTimeout(() => {
+          setSyncStatus('idle');
+        }, 5000);
+      } else {
+        setSyncStatus('error');
+      }
+    } catch (error) {
+      setSyncStatus('error');
+      setLastSyncResult({
+        ok: false,
+        fetched: 0,
+        pushed: 0,
+        skippedDuplicates: 0,
+        errors: [error instanceof Error ? error.message : 'Sync failed'],
+      });
+    }
+  }, [router]);
+
+  // Auto-sync on mount if user has Google auth
+  useEffect(() => {
+    if (hasGoogleAuth) {
+      handleSync();
+    }
+  }, [hasGoogleAuth, handleSync]);
+
+  // Cleanup timer on unmount
+  useEffect(() => {
+    return () => {
+      if (autoResetTimerRef.current) {
+        clearTimeout(autoResetTimerRef.current);
+      }
+    };
+  }, []);
 
   // Detect conflicts among timed events
   const conflictingIds = useMemo(() => {
@@ -233,13 +324,16 @@ export function CalendarView({ events, courses, semester = 'Spring 2026' }: Cale
     }
 
     // Style regular events with course color
+    // External (read-only) events get dashed border and reduced opacity
+    const isExternal = !event.editable && event.courseCode === 'GCAL';
+
     return {
       style: {
         backgroundColor: event.courseColor,
         borderRadius: '4px',
-        opacity: 0.9,
+        opacity: isExternal ? 0.7 : 0.9,
         color: 'white',
-        border: 'none',
+        border: isExternal ? '2px dashed rgba(255, 255, 255, 0.5)' : 'none',
         fontSize: '0.75rem',
       },
     };
@@ -312,11 +406,14 @@ export function CalendarView({ events, courses, semester = 'Spring 2026' }: Cale
           {...props}
           isMobile={isMobile}
           onCreateEvent={handleCreateButtonClick}
+          syncStatus={hasGoogleAuth ? syncStatus : undefined}
+          lastSyncResult={lastSyncResult}
+          onSync={hasGoogleAuth ? handleSync : undefined}
         />
       ),
       event: CalendarEventChip,
     }),
-    [isMobile, handleCreateButtonClick]
+    [isMobile, handleCreateButtonClick, hasGoogleAuth, syncStatus, lastSyncResult, handleSync]
   );
 
   return (

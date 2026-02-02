@@ -3,12 +3,18 @@ import { getCourses } from "@/app/server-actions/courses";
 import { CalendarView } from "@/components/calendar/calendar-view";
 import Link from "next/link";
 import { Upload } from "lucide-react";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 
 export default async function CalendarPage() {
-  const [eventsResult, coursesResult] = await Promise.all([
+  const [eventsResult, coursesResult, session] = await Promise.all([
     getEvents(),
     getCourses(),
+    getServerSession(authOptions),
   ]);
+
+  // Check if user has Google auth
+  const hasGoogleAuth = !!(session?.accessToken);
 
   if (!eventsResult.ok) {
     return (
@@ -68,7 +74,11 @@ export default async function CalendarPage() {
         </Link>
       </header>
 
-      <CalendarView events={eventsResult.events} courses={coursesResult.courses} />
+      <CalendarView
+        events={eventsResult.events}
+        courses={coursesResult.courses}
+        hasGoogleAuth={hasGoogleAuth}
+      />
     </main>
   );
 }
