@@ -6,23 +6,23 @@ See: .planning/PROJECT.md (updated 2026-02-01)
 
 **Core value:** Reliable PDF extraction that works across all syllabus formats so students spend 2 minutes uploading instead of 30+ minutes manually entering dates
 
-**Current focus:** Phase 2 - Enhanced PDF Extraction (COMPLETE)
+**Current focus:** Phase 3 - Calendar UI (IN PROGRESS)
 
 ## Current Position
 
-Phase: 2 of 5 (Enhanced PDF Extraction) - COMPLETE
-Plan: 5 of 5 in phase (all plans complete: 02-01, 02-02, 02-03, 02-04, 02-05)
-Status: Phase 2 complete - Production-ready PDF extraction with OCR, confidence scoring, and preview UI
-Last activity: 2026-02-02 — Completed 02-05-PLAN.md (End-to-End Integration Testing)
+Phase: 3 of 5 (Calendar UI) - IN PROGRESS
+Plan: 1 of 4 in phase (03-01 complete, 03-02 through 03-04 remaining)
+Status: Calendar foundation complete with react-big-calendar, view switching, and custom toolbar
+Last activity: 2026-02-02 — Completed 03-01-PLAN.md (Calendar Setup)
 
-Progress: [█████░░░░░] 50% (5/5 phase 2 plans complete, 2/5 phases overall)
+Progress: [██████░░░░] 54.5% (6/11 plans complete across all phases)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 9
-- Average duration: 12 minutes
-- Total execution time: 1.83 hours (110 minutes)
+- Total plans completed: 10
+- Average duration: 11.5 minutes
+- Total execution time: 1.92 hours (115 minutes)
 
 **By Phase:**
 
@@ -30,10 +30,11 @@ Progress: [█████░░░░░] 50% (5/5 phase 2 plans complete, 2/5 
 |-------|-------|-------|----------|
 | 01-data-foundation | 4/4 | 33min | 8min |
 | 02-enhanced-pdf-extraction | 5/5 | 50min | 10min |
+| 03-calendar-ui | 1/4 | 5min | 5min |
 
 **Recent Trend:**
-- Last 5 plans: 02-02 (5min), 02-03 (4min), 02-04 (4min), 02-05 (34min)
-- Trend: Plan 02-05 took longer (34min) due to integration testing and bug fixes, but Phase 2 overall maintains good velocity
+- Last 5 plans: 02-03 (4min), 02-04 (4min), 02-05 (34min), 03-01 (5min)
+- Trend: Phase 3 start is fast (5min) - UI work is progressing efficiently
 
 *Updated after each plan completion*
 
@@ -118,6 +119,16 @@ Recent decisions affecting current work:
 - Phase 2 complete: Production-ready PDF extraction pipeline validated end-to-end
 - Known limitations: OCR quality poor with Tesseract, LLM accuracy varies by syllabus format
 
+**From 03-01 (Calendar Setup):**
+- react-big-calendar for calendar rendering (mature library with extensive features)
+- Custom Tailwind toolbar replacing RBC default (consistent with project design)
+- Deterministic color mapping for courses (hash-based palette selection from 10-color palette)
+- Generic typing for toolbar component: `ToolbarProps<TEvent>` and `Calendar<CalendarEvent>` for type safety
+- Timezone-safe date parsing with explicit year/month/day (avoids ISO string timezone offset bugs)
+- Academic calendar dates defined for Spring 2026 and Fall 2025 (semester starts, breaks, finals)
+- Conflict detection logic implemented (time overlap detection for scheduling conflicts)
+- Bidirectional navigation between upload page and calendar page
+
 ### Pending Todos
 
 None yet.
@@ -150,10 +161,10 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-02-02T07:22:01Z — Completed 02-05-PLAN.md
-Stopped at: Phase 2 Enhanced PDF Extraction complete - production-ready extraction pipeline
+Last session: 2026-02-02T14:11:03Z — Completed 03-01-PLAN.md
+Stopped at: Phase 3 Plan 1 complete - Calendar foundation with react-big-calendar and custom toolbar
 Resume file: None
-Next: Ready for Phase 3 (UI Polish) or Phase 4 (Advanced Parsing)
+Next: 03-02 (Event Styling), 03-03 (Academic Overlays), or 03-04 (Conflict Visualization)
 
 ---
 *State initialized: 2026-02-01*
