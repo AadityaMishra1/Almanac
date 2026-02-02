@@ -11,18 +11,18 @@ See: .planning/PROJECT.md (updated 2026-02-01)
 ## Current Position
 
 Phase: 3 of 5 (Calendar UI) - IN PROGRESS
-Plan: 1 of 4 in phase (03-01 complete, 03-02 through 03-04 remaining)
-Status: Calendar foundation complete with react-big-calendar, view switching, and custom toolbar
-Last activity: 2026-02-02 — Completed 03-01-PLAN.md (Calendar Setup)
+Plan: 2 of 4 in phase (03-01, 03-02 complete, 03-03 through 03-04 remaining)
+Status: Calendar with color-coded events, academic overlay, conflict detection, and interactive event modal
+Last activity: 2026-02-02 — Completed 03-02-PLAN.md (Event Styling & Interactivity)
 
-Progress: [██████░░░░] 54.5% (6/11 plans complete across all phases)
+Progress: [██████░░░░] 63.6% (7/11 plans complete across all phases)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 10
-- Average duration: 11.5 minutes
-- Total execution time: 1.92 hours (115 minutes)
+- Total plans completed: 11
+- Average duration: 10.7 minutes
+- Total execution time: 1.97 hours (118 minutes)
 
 **By Phase:**
 
@@ -30,11 +30,11 @@ Progress: [██████░░░░] 54.5% (6/11 plans complete across all
 |-------|-------|-------|----------|
 | 01-data-foundation | 4/4 | 33min | 8min |
 | 02-enhanced-pdf-extraction | 5/5 | 50min | 10min |
-| 03-calendar-ui | 1/4 | 5min | 5min |
+| 03-calendar-ui | 2/4 | 8min | 4min |
 
 **Recent Trend:**
-- Last 5 plans: 02-03 (4min), 02-04 (4min), 02-05 (34min), 03-01 (5min)
-- Trend: Phase 3 start is fast (5min) - UI work is progressing efficiently
+- Last 5 plans: 02-04 (4min), 02-05 (34min), 03-01 (5min), 03-02 (3min)
+- Trend: Phase 3 maintaining excellent velocity (4min avg) - UI work is very efficient
 
 *Updated after each plan completion*
 
@@ -129,6 +129,17 @@ Recent decisions affecting current work:
 - Conflict detection logic implemented (time overlap detection for scheduling conflicts)
 - Bidirectional navigation between upload page and calendar page
 
+**From 03-02 (Event Styling & Interactivity):**
+- Unified eventPropGetter handles both regular and academic background events
+- Academic dates styled as background events with color-coded borders (breaks=yellow, finals=red, semester=blue)
+- Conflict indicator uses amber AlertTriangle icon in event chip (tooltip on hover)
+- Radix Dialog for modal (consistent with shadcn/ui patterns, accessible)
+- Native date/time inputs for better mobile UX and built-in validation
+- All-day checkbox controls time input visibility (UX clarity)
+- Optimistic update on save (modal closes immediately, page refetches on navigation)
+- Edit button only shown for editable (ALMANAC) events (permission enforcement in UI)
+- CalendarEventChip custom component for event rendering with conflict indicators
+
 ### Pending Todos
 
 None yet.
@@ -161,10 +172,10 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-02-02T14:11:03Z — Completed 03-01-PLAN.md
-Stopped at: Phase 3 Plan 1 complete - Calendar foundation with react-big-calendar and custom toolbar
+Last session: 2026-02-02T14:19:45Z — Completed 03-02-PLAN.md
+Stopped at: Phase 3 Plan 2 complete - Event styling, academic overlay, conflict detection, and interactive modal
 Resume file: None
-Next: 03-02 (Event Styling), 03-03 (Academic Overlays), or 03-04 (Conflict Visualization)
+Next: 03-03 (Mobile Responsiveness), 03-04 (Polish & Animations), or Phase 4 (Advanced Parsing)
 
 ---
 *State initialized: 2026-02-01*
