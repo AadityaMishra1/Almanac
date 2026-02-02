@@ -5,6 +5,7 @@ import { authOptions } from "@/lib/auth";
 import { getCalendarClient } from "@/lib/google";
 import { prisma } from "@/lib/db";
 import { updateEvent } from "@/app/server-actions/events";
+import { runSync, type SyncResult } from "@/lib/sync/sync-engine";
 
 function addDays(isoDate: string, days: number) {
   const [y, m, d] = isoDate.split("-").map(Number);
@@ -108,5 +109,60 @@ export async function deleteGoogleCalendarEvent(
     // Return success anyway - local deletion should proceed
     // User might have already deleted from Google Calendar directly
     return { ok: true };
+  }
+}
+
+// Track last sync time per session (in-memory, resets on server restart)
+let lastSyncTime = 0;
+const SYNC_THROTTLE_MS = 10_000; // 10 seconds
+
+/**
+ * Run bidirectional calendar sync:
+ * - Fetch events from Google Calendar and import as read-only
+ * - Push un-synced Almanac events to Google Calendar
+ * - Smart throttling: prevents rapid successive syncs
+ */
+export async function syncCalendar(): Promise<SyncResult> {
+  try {
+    const session = await getServerSession(authOptions);
+    const accessToken = session?.accessToken;
+    if (!accessToken) {
+      return {
+        ok: false,
+        fetched: 0,
+        pushed: 0,
+        skippedDuplicates: 0,
+        errors: ["Not signed in (or missing Google access token)."],
+      };
+    }
+
+    // Throttle check: prevent spam-clicking
+    const now = Date.now();
+    const timeSinceLastSync = now - lastSyncTime;
+    if (timeSinceLastSync < SYNC_THROTTLE_MS) {
+      const secondsRemaining = Math.ceil((SYNC_THROTTLE_MS - timeSinceLastSync) / 1000);
+      return {
+        ok: false,
+        fetched: 0,
+        pushed: 0,
+        skippedDuplicates: 0,
+        errors: [`Synced recently. Try again in ${secondsRemaining} seconds.`],
+      };
+    }
+
+    // Update last sync time
+    lastSyncTime = now;
+
+    // Run sync
+    const result = await runSync(accessToken);
+    return result;
+  } catch (e) {
+    return {
+      ok: false,
+      fetched: 0,
+      pushed: 0,
+      skippedDuplicates: 0,
+      errors: [e instanceof Error ? e.message : "Calendar sync failed."],
+    };
   }
 }
