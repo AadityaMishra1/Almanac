@@ -1,12 +1,16 @@
 import { getEvents } from "@/app/server-actions/events";
+import { getCourses } from "@/app/server-actions/courses";
 import { CalendarView } from "@/components/calendar/calendar-view";
 import Link from "next/link";
 import { Upload } from "lucide-react";
 
 export default async function CalendarPage() {
-  const result = await getEvents();
+  const [eventsResult, coursesResult] = await Promise.all([
+    getEvents(),
+    getCourses(),
+  ]);
 
-  if (!result.ok) {
+  if (!eventsResult.ok) {
     return (
       <main className="mx-auto flex min-h-screen w-full max-w-7xl flex-col gap-8 p-4">
         <header className="flex items-center justify-between">
@@ -20,7 +24,27 @@ export default async function CalendarPage() {
           </Link>
         </header>
         <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800">
-          Error loading events: {result.error}
+          Error loading events: {eventsResult.error}
+        </div>
+      </main>
+    );
+  }
+
+  if (!coursesResult.ok) {
+    return (
+      <main className="mx-auto flex min-h-screen w-full max-w-7xl flex-col gap-8 p-4">
+        <header className="flex items-center justify-between">
+          <h1 className="text-2xl font-semibold tracking-tight">Calendar</h1>
+          <Link
+            href="/"
+            className="flex items-center gap-2 text-sm text-zinc-600 hover:text-zinc-900"
+          >
+            <Upload className="h-4 w-4" />
+            Upload Syllabus
+          </Link>
+        </header>
+        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800">
+          Error loading courses: {coursesResult.error}
         </div>
       </main>
     );
@@ -44,7 +68,7 @@ export default async function CalendarPage() {
         </Link>
       </header>
 
-      <CalendarView events={result.events} />
+      <CalendarView events={eventsResult.events} courses={coursesResult.courses} />
     </main>
   );
 }

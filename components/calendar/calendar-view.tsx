@@ -1,15 +1,19 @@
 'use client';
 
-import { Calendar, Views, type View } from 'react-big-calendar';
+import { Calendar, Views, type View, type SlotInfo } from 'react-big-calendar';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import { localizer } from '@/lib/calendar/localizer';
 import { CalendarToolbar } from './calendar-toolbar';
 import { CalendarEventChip } from './calendar-event';
 import { EventDetailModal } from './event-detail-modal';
+import { CreateEventModal } from './create-event-modal';
 import { getCourseColor } from '@/lib/calendar/event-colors';
 import { getAcademicDatesForSemester } from '@/lib/calendar/ncsu-academic-calendar';
 import { findConflicts, type TimeSlot } from '@/lib/calendar/conflict-detection';
 import { useState, useMemo, useCallback, useEffect } from 'react';
+import { Plus } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import type { Course } from '@prisma/client';
 
 /**
  * Hook to detect mobile screen size (<768px).
@@ -108,14 +112,21 @@ function prismaEventToCalendarEvent(
 
 interface CalendarViewProps {
   events: any[]; // Prisma events with course relation
+  courses: Course[]; // Available courses for event creation
   semester?: string; // e.g., "Spring 2026"
 }
 
-export function CalendarView({ events, semester = 'Spring 2026' }: CalendarViewProps) {
+export function CalendarView({ events, courses, semester = 'Spring 2026' }: CalendarViewProps) {
   const isMobile = useIsMobile();
   const [date, setDate] = useState<Date>(new Date());
   const [view, setView] = useState<View>('month');
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [createModalInitial, setCreateModalInitial] = useState<{
+    date?: string;
+    time?: string;
+    allDay?: boolean;
+  }>({});
 
   // Auto-switch to day view on mobile if currently in month view
   useEffect(() => {
@@ -257,12 +268,48 @@ export function CalendarView({ events, semester = 'Spring 2026' }: CalendarViewP
     []
   );
 
+  const handleSelectSlot = useCallback((slotInfo: SlotInfo) => {
+    const start = slotInfo.start;
+
+    // Format date as YYYY-MM-DD
+    const year = start.getFullYear();
+    const month = String(start.getMonth() + 1).padStart(2, '0');
+    const day = String(start.getDate()).padStart(2, '0');
+    const dateStr = `${year}-${month}-${day}`;
+
+    // Check if it's an all-day slot (month view) or timed slot (week/day view)
+    const isAllDay = view === 'month' || slotInfo.action === 'click';
+
+    if (isAllDay) {
+      setCreateModalInitial({ date: dateStr, allDay: true });
+    } else {
+      // Format time as HH:MM
+      const hour = String(start.getHours()).padStart(2, '0');
+      const minute = String(start.getMinutes()).padStart(2, '0');
+      const timeStr = `${hour}:${minute}`;
+      setCreateModalInitial({ date: dateStr, time: timeStr, allDay: false });
+    }
+
+    setShowCreateModal(true);
+  }, [view]);
+
+  const handleCreateButtonClick = useCallback(() => {
+    setCreateModalInitial({});
+    setShowCreateModal(true);
+  }, []);
+
   const components = useMemo(
     () => ({
-      toolbar: (props: any) => <CalendarToolbar {...props} isMobile={isMobile} />,
+      toolbar: (props: any) => (
+        <CalendarToolbar
+          {...props}
+          isMobile={isMobile}
+          onCreateEvent={handleCreateButtonClick}
+        />
+      ),
       event: CalendarEventChip,
     }),
-    [isMobile]
+    [isMobile, handleCreateButtonClick]
   );
 
   return (
@@ -275,6 +322,8 @@ export function CalendarView({ events, semester = 'Spring 2026' }: CalendarViewP
         onNavigate={onNavigate}
         onView={onView}
         onSelectEvent={onSelectEvent}
+        onSelectSlot={handleSelectSlot}
+        selectable={true}
         views={['month', 'week', 'day']}
         components={components}
         eventPropGetter={eventPropGetter}
@@ -286,11 +335,31 @@ export function CalendarView({ events, semester = 'Spring 2026' }: CalendarViewP
         scrollToTime={new Date(0, 0, 0, 8, 0)}
       />
 
+      {/* Floating Action Button (Mobile only) */}
+      {isMobile && (
+        <Button
+          onClick={handleCreateButtonClick}
+          className="fixed bottom-4 right-4 z-50 w-14 h-14 rounded-full shadow-lg p-0"
+          aria-label="Create event"
+        >
+          <Plus className="h-6 w-6" />
+        </Button>
+      )}
+
       <EventDetailModal
         event={selectedEvent}
         open={!!selectedEvent}
         onOpenChange={(open) => !open && setSelectedEvent(null)}
         onEventUpdated={handleEventUpdated}
+      />
+
+      <CreateEventModal
+        open={showCreateModal}
+        onOpenChange={setShowCreateModal}
+        courses={courses}
+        initialDate={createModalInitial.date}
+        initialTime={createModalInitial.time}
+        initialAllDay={createModalInitial.allDay}
       />
     </div>
   );

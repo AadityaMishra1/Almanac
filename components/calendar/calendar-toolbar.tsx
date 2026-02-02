@@ -1,12 +1,13 @@
 'use client';
 
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, ChevronDown } from "lucide-react";
+import { ChevronLeft, ChevronRight, ChevronDown, Plus } from "lucide-react";
 import { Navigate, type ToolbarProps } from "react-big-calendar";
 import * as Select from "@radix-ui/react-select";
 
 interface CalendarToolbarProps<TEvent extends object = object> extends ToolbarProps<TEvent> {
   isMobile?: boolean;
+  onCreateEvent?: () => void;
 }
 
 export function CalendarToolbar<TEvent extends object = object>({
@@ -16,6 +17,7 @@ export function CalendarToolbar<TEvent extends object = object>({
   onView,
   label,
   isMobile = false,
+  onCreateEvent,
 }: CalendarToolbarProps<TEvent>) {
   // Desktop layout
   if (!isMobile) {
@@ -52,8 +54,19 @@ export function CalendarToolbar<TEvent extends object = object>({
         {/* Center: Current date label */}
         <h2 className="text-lg font-semibold">{label}</h2>
 
-        {/* Right: View toggle buttons */}
+        {/* Right: New Event button + View toggle buttons */}
         <div className="flex items-center gap-2">
+          {onCreateEvent && (
+            <Button
+              variant="default"
+              size="default"
+              onClick={onCreateEvent}
+              className="min-h-[44px] gap-2"
+            >
+              <Plus className="h-4 w-4" />
+              New Event
+            </Button>
+          )}
           <Button
             variant={view === 'month' ? 'default' : 'outline'}
             size="default"
