@@ -11,29 +11,29 @@ See: .planning/PROJECT.md (updated 2026-02-01)
 ## Current Position
 
 Phase: 2 of 5 (Enhanced PDF Extraction) - In Progress
-Plan: 3 of 5 in phase (02-01, 02-02, 02-03 complete)
-Status: Phase 2 active - Parse API integration complete
-Last activity: 2026-02-02 — Completed 02-03-PLAN.md (Parse API Integration)
+Plan: 4 of 5 in phase (02-01, 02-02, 02-03, 02-04 complete)
+Status: Phase 2 active - Extraction preview UI with confidence visualization complete
+Last activity: 2026-02-02 — Completed 02-04-PLAN.md (Extraction Preview UI)
 
-Progress: [███░░░░░░░] 30% (3/5 phase 2 plans complete, 1.6/5 phases overall)
+Progress: [████░░░░░░] 40% (4/5 phase 2 plans complete, 1.8/5 phases overall)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 7
+- Total plans completed: 8
 - Average duration: 6 minutes
-- Total execution time: 0.75 hours (45 minutes)
+- Total execution time: 0.82 hours (49 minutes)
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 01-data-foundation | 4/4 | 33min | 8min |
-| 02-enhanced-pdf-extraction | 3/5 | 12min | 4min |
+| 02-enhanced-pdf-extraction | 4/5 | 16min | 4min |
 
 **Recent Trend:**
-- Last 5 plans: 01-03b (8min), 02-01 (3min), 02-02 (5min), 02-03 (4min)
-- Trend: Phase 2 maintaining fast velocity (4min avg), excellent momentum
+- Last 5 plans: 02-01 (3min), 02-02 (5min), 02-03 (4min), 02-04 (4min)
+- Trend: Phase 2 maintaining excellent velocity (4min avg), consistent execution
 
 *Updated after each plan completion*
 
@@ -102,6 +102,14 @@ Recent decisions affecting current work:
 - Semester now accepted from form data (removes hardcoded "Spring 2026" limitation)
 - Response metadata includes totalEvents, highConfidence, needsReview counts for UI
 
+**From 02-04 (Extraction Preview UI):**
+- Color-coded confidence badges: High (>=0.85 green), Medium (>=0.6 amber), Low (<0.6 red)
+- Pre-select events with confidence >= 0.6, deselect low-confidence for user review
+- Native date input (type='date') and select dropdown for type field (simple, accessible)
+- Low-confidence rows highlighted with red left border and tinted background
+- Extraction metadata banner shows OCR detection, page count, confidence distribution
+- Confidence data merged from parse response (not stored in database)
+
 ### Pending Todos
 
 None yet.
@@ -119,8 +127,9 @@ None yet.
   - Image-based PDFs fail without OCR (✅ RESOLVED in 02-01 - Tesseract OCR pipeline now active)
   - Spreadsheet-based PDFs miss events (✅ RESOLVED in 02-03 - table extraction now active)
   - Groq invalid JSON errors on some PDFs (✅ RESOLVED in 02-02/02-03 - graceful fallback with empty array)
-  - Wrong dates extracted (⚠️ PARTIALLY RESOLVED in 02-02 - validation catches out-of-bounds, still needs 02-04 semantic) - HIGH urgency
+  - Wrong dates extracted (✅ RESOLVED in 02-02/02-04 - validation + confidence UI enables user review) - **CLOSED**
   - Missing event categorization (✅ RESOLVED in 02-02 - type inference with confidence tracking)
+  - Low-quality extractions not visible to user (✅ RESOLVED in 02-04 - confidence badges and highlighting)
 - **OAuth token expiry:** Sync fails with expired token despite user signed in (token refresh needed) - MEDIUM urgency
 - **Manual course input:** User types name for each upload (Phase 2 will automate with LLM) - MEDIUM urgency
 - **Hardcoded semester:** All courses default to "Spring 2026" (✅ RESOLVED in 02-03 - API accepts semester param)
@@ -128,8 +137,8 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-02-02T06:42:46Z — Completed 02-03-PLAN.md
-Stopped at: Parse API integration complete, ready for 02-04 (Semantic Date Validation)
+Last session: 2026-02-02T06:43:32Z — Completed 02-04-PLAN.md
+Stopped at: Extraction preview UI complete, ready for 02-05 (Semantic Date Validation)
 Resume file: None
 
 ---
