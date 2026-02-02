@@ -6,12 +6,15 @@
 import { detectPdfType } from "./detect-pdf-type";
 import { extractTextFromPdf } from "./extract-text";
 import { extractTextViaOCR } from "./extract-ocr";
+import { extractTables } from "./extract-tables";
 
 export interface ExtractionResult {
   text: string;
+  tables: string;
   metadata: {
     method: "text" | "ocr";
     pageCount: number;
+    hasTableData: boolean;
   };
 }
 
@@ -35,11 +38,16 @@ export async function extractPdfContent(
     text = await extractTextViaOCR(buffer);
   }
 
+  // Extract table data from the original buffer
+  const tables = await extractTables(buffer);
+
   return {
     text,
+    tables,
     metadata: {
       method: pdfType === "text" ? "text" : "ocr",
       pageCount,
+      hasTableData: tables.length > 0,
     },
   };
 }
@@ -48,3 +56,4 @@ export async function extractPdfContent(
 export { detectPdfType } from "./detect-pdf-type";
 export { extractTextFromPdf } from "./extract-text";
 export { extractTextViaOCR } from "./extract-ocr";
+export { extractTables } from "./extract-tables";
