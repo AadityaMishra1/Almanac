@@ -3,7 +3,6 @@
  * Uses pdf.js to render pages + Tesseract.js for text recognition
  */
 
-import { getDocument } from "pdfjs-dist/legacy/build/pdf.mjs";
 import { createWorker } from "tesseract.js";
 import { createCanvas } from "canvas";
 
@@ -11,8 +10,14 @@ export async function extractTextViaOCR(buffer: Buffer): Promise<string> {
   let worker: Awaited<ReturnType<typeof createWorker>> | null = null;
 
   try {
+    // Dynamic import of pdfjs-dist to avoid server-side initialization issues
+    const pdfjsLib = await import("pdfjs-dist/legacy/build/pdf.mjs");
+
+    // Disable worker for Node.js environment
+    pdfjsLib.GlobalWorkerOptions.workerSrc = "";
+
     // Load PDF document
-    const pdf = await getDocument({ data: buffer }).promise;
+    const pdf = await pdfjsLib.getDocument({ data: buffer }).promise;
     const pageCount = pdf.numPages;
 
     // Initialize Tesseract worker
