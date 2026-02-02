@@ -55,10 +55,14 @@ Plans:
   4. User sees extraction preview showing all events with confidence scores before syncing
   5. User can manually correct misidentified dates or event types in preview table
 
-**Plans**: TBD
+**Plans**: 5 plans
 
 Plans:
-- TBD during planning
+- [ ] 02-01-PLAN.md — Build OCR extraction pipeline with PDF type detection and Tesseract.js
+- [ ] 02-02-PLAN.md — TDD: Confidence scoring with semester date validation and enhanced LLM extraction
+- [ ] 02-03-PLAN.md — Wire enhanced extraction + table extraction into parse route
+- [ ] 02-04-PLAN.md — Build preview UI with confidence badges and inline editing
+- [ ] 02-05-PLAN.md — End-to-end integration testing and checkpoint verification
 
 ### Phase 3: Calendar UI
 **Goal**: Provide students with familiar calendar interface (month/week/day views) for visualizing and navigating Almanac events on both desktop and mobile
@@ -133,7 +137,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Data Foundation | 4/4 | ✓ Complete | 2026-02-02 |
-| 2. Enhanced PDF Extraction | 0/TBD | Not started | - |
+| 2. Enhanced PDF Extraction | 0/5 | Not started | - |
 | 3. Calendar UI | 0/TBD | Not started | - |
 | 4. Event Management & Sync | 0/TBD | Not started | - |
 | 5. AI Chat Interface | 0/TBD | Not started | - |
