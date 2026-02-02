@@ -106,45 +106,45 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| PDF-01 | TBD | Pending |
-| PDF-02 | TBD | Pending |
-| PDF-03 | TBD | Pending |
-| PDF-04 | TBD | Pending |
-| PDF-05 | TBD | Pending |
-| CAL-01 | TBD | Pending |
-| CAL-02 | TBD | Pending |
-| CAL-03 | TBD | Pending |
-| CAL-04 | TBD | Pending |
-| CAL-05 | TBD | Pending |
-| CAL-06 | TBD | Pending |
-| CAL-07 | TBD | Pending |
-| CAL-08 | TBD | Pending |
-| CAL-09 | TBD | Pending |
-| CAL-10 | TBD | Pending |
-| CAL-11 | TBD | Pending |
-| CHAT-01 | TBD | Pending |
-| CHAT-02 | TBD | Pending |
-| CHAT-03 | TBD | Pending |
-| CHAT-04 | TBD | Pending |
-| CHAT-05 | TBD | Pending |
-| CHAT-06 | TBD | Pending |
-| CHAT-07 | TBD | Pending |
-| EVENT-01 | TBD | Pending |
-| EVENT-02 | TBD | Pending |
-| EVENT-03 | TBD | Pending |
-| EVENT-04 | TBD | Pending |
-| EVENT-05 | TBD | Pending |
-| EVENT-06 | TBD | Pending |
-| DATA-01 | TBD | Pending |
-| DATA-02 | TBD | Pending |
-| DATA-03 | TBD | Pending |
-| DATA-04 | TBD | Pending |
+| DATA-01 | Phase 1 | Pending |
+| DATA-02 | Phase 1 | Pending |
+| DATA-03 | Phase 1 | Pending |
+| DATA-04 | Phase 1 | Pending |
+| PDF-01 | Phase 2 | Pending |
+| PDF-02 | Phase 2 | Pending |
+| PDF-03 | Phase 2 | Pending |
+| PDF-04 | Phase 2 | Pending |
+| PDF-05 | Phase 2 | Pending |
+| CAL-01 | Phase 3 | Pending |
+| CAL-02 | Phase 3 | Pending |
+| CAL-03 | Phase 3 | Pending |
+| CAL-04 | Phase 3 | Pending |
+| CAL-05 | Phase 3 | Pending |
+| CAL-06 | Phase 3 | Pending |
+| CAL-07 | Phase 3 | Pending |
+| CAL-08 | Phase 3 | Pending |
+| CAL-09 | Phase 3 | Pending |
+| CAL-10 | Phase 3 | Pending |
+| CAL-11 | Phase 3 | Pending |
+| EVENT-01 | Phase 4 | Pending |
+| EVENT-02 | Phase 4 | Pending |
+| EVENT-03 | Phase 4 | Pending |
+| EVENT-04 | Phase 4 | Pending |
+| EVENT-05 | Phase 4 | Pending |
+| EVENT-06 | Phase 4 | Pending |
+| CHAT-01 | Phase 5 | Pending |
+| CHAT-02 | Phase 5 | Pending |
+| CHAT-03 | Phase 5 | Pending |
+| CHAT-04 | Phase 5 | Pending |
+| CHAT-05 | Phase 5 | Pending |
+| CHAT-06 | Phase 5 | Pending |
+| CHAT-07 | Phase 5 | Pending |
 
 **Coverage:**
 - v1 requirements: 32 total
-- Mapped to phases: 0
-- Unmapped: 32 ⚠️
+- Mapped to phases: 32
+- Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-02-01*
-*Last updated: 2026-02-01 after initial definition*
+*Last updated: 2026-02-01 after roadmap creation*
