@@ -11,18 +11,18 @@ See: .planning/PROJECT.md (updated 2026-02-01)
 ## Current Position
 
 Phase: 3 of 5 (Calendar UI) - IN PROGRESS
-Plan: 2 of 4 in phase (03-01, 03-02 complete, 03-03 through 03-04 remaining)
-Status: Calendar with color-coded events, academic overlay, conflict detection, and interactive event modal
-Last activity: 2026-02-02 — Completed 03-02-PLAN.md (Event Styling & Interactivity)
+Plan: 3 of 4 in phase (03-01, 03-02, 03-03 complete, 03-04 remaining)
+Status: Fully responsive mobile calendar with all 11 CAL requirements verified
+Last activity: 2026-02-02 — Completed 03-03-PLAN.md (Mobile Responsiveness & Verification)
 
-Progress: [██████░░░░] 63.6% (7/11 plans complete across all phases)
+Progress: [███████░░░] 72.7% (8/11 plans complete across all phases)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 11
-- Average duration: 10.7 minutes
-- Total execution time: 1.97 hours (118 minutes)
+- Total plans completed: 8
+- Average duration: 12.6 minutes
+- Total execution time: 1.68 hours (101 minutes)
 
 **By Phase:**
 
@@ -30,11 +30,11 @@ Progress: [██████░░░░] 63.6% (7/11 plans complete across all
 |-------|-------|-------|----------|
 | 01-data-foundation | 4/4 | 33min | 8min |
 | 02-enhanced-pdf-extraction | 5/5 | 50min | 10min |
-| 03-calendar-ui | 2/4 | 8min | 4min |
+| 03-calendar-ui | 3/4 | 36min | 12min |
 
 **Recent Trend:**
-- Last 5 plans: 02-04 (4min), 02-05 (34min), 03-01 (5min), 03-02 (3min)
-- Trend: Phase 3 maintaining excellent velocity (4min avg) - UI work is very efficient
+- Last 5 plans: 02-05 (34min), 03-01 (5min), 03-02 (3min), 03-03 (28min)
+- Trend: Phase 3 velocity increased with responsive implementation but still efficient (12min avg)
 
 *Updated after each plan completion*
 
@@ -140,6 +140,18 @@ Recent decisions affecting current work:
 - Edit button only shown for editable (ALMANAC) events (permission enforcement in UI)
 - CalendarEventChip custom component for event rendering with conflict indicators
 
+**From 03-03 (Mobile Responsiveness & Verification):**
+- useIsMobile hook with window.matchMedia for SSR-safe responsive detection (<768px breakpoint)
+- Auto-switch to day view on mobile screens (prevents horizontal scrolling)
+- Responsive toolbar: full buttons on desktop, compact dropdown on mobile (Radix Select)
+- Two-row mobile toolbar layout: nav controls (row 1), today/view selector (row 2)
+- 44px minimum touch targets for WCAG accessibility compliance
+- Near-full-screen modal on mobile (95vw) for better readability
+- RBC CSS overrides in globals.css to fix Tailwind conflicts and mobile sizing
+- Academic events merged into main events array for proper multi-day spanning in month view
+- router.refresh() after event edit for immediate UI update (solves optimistic update issue)
+- All 11 CAL requirements verified and approved (desktop + mobile + navigation)
+
 ### Pending Todos
 
 None yet.
@@ -172,10 +184,10 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-02-02T14:19:45Z — Completed 03-02-PLAN.md
-Stopped at: Phase 3 Plan 2 complete - Event styling, academic overlay, conflict detection, and interactive modal
+Last session: 2026-02-02T14:59:12Z — Completed 03-03-PLAN.md
+Stopped at: Phase 3 Plan 3 complete - Mobile responsive calendar with all 11 CAL requirements verified
 Resume file: None
-Next: 03-03 (Mobile Responsiveness), 03-04 (Polish & Animations), or Phase 4 (Advanced Parsing)
+Next: 03-04 (Polish & Animations) to complete Phase 3, or Phase 4 (Advanced Parsing)
 
 ---
 *State initialized: 2026-02-01*
