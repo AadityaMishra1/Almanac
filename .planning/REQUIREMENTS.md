@@ -39,12 +39,12 @@
 
 ### Event Management
 
-- [ ] **EVENT-01**: User can manually create events via form UI
-- [ ] **EVENT-02**: User can delete events with confirmation
-- [ ] **EVENT-03**: System tags all events with source metadata (almanac vs external)
-- [ ] **EVENT-04**: System tracks event metadata (course code, event type, editability)
-- [ ] **EVENT-05**: Events sync bidirectionally with Google Calendar (fetch + push)
-- [ ] **EVENT-06**: System prevents duplicate events during sync (event ID mapping)
+- [x] **EVENT-01**: User can manually create events via form UI
+- [x] **EVENT-02**: User can delete events with confirmation
+- [x] **EVENT-03**: System tags all events with source metadata (almanac vs external)
+- [x] **EVENT-04**: System tracks event metadata (course code, event type, editability)
+- [x] **EVENT-05**: Events sync bidirectionally with Google Calendar (fetch + push)
+- [x] **EVENT-06**: System prevents duplicate events during sync (event ID mapping)
 
 ### Data Layer
 
@@ -126,12 +126,12 @@
 | CAL-09 | Phase 3 | Pending |
 | CAL-10 | Phase 3 | Pending |
 | CAL-11 | Phase 3 | Pending |
-| EVENT-01 | Phase 4 | Pending |
-| EVENT-02 | Phase 4 | Pending |
-| EVENT-03 | Phase 4 | Pending |
-| EVENT-04 | Phase 4 | Pending |
-| EVENT-05 | Phase 4 | Pending |
-| EVENT-06 | Phase 4 | Pending |
+| EVENT-01 | Phase 4 | Complete |
+| EVENT-02 | Phase 4 | Complete |
+| EVENT-03 | Phase 4 | Complete |
+| EVENT-04 | Phase 4 | Complete |
+| EVENT-05 | Phase 4 | Complete |
+| EVENT-06 | Phase 4 | Complete |
 | CHAT-01 | Phase 5 | Pending |
 | CHAT-02 | Phase 5 | Pending |
 | CHAT-03 | Phase 5 | Pending |
