@@ -6,6 +6,7 @@ import { getCalendarClient } from '@/lib/google';
 import { prisma } from '@/lib/db';
 import { EventSource } from '@prisma/client';
 import { EventSnapshot } from '@/types/chat';
+import { saveCommand } from '@/lib/chat/commands';
 
 /**
  * Request body schema for execute endpoint.
@@ -64,6 +65,50 @@ function addDays(isoDate: string, days: number): string {
   const month = String(dt.getUTCMonth() + 1).padStart(2, '0');
   const day = String(dt.getUTCDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
+}
+
+/**
+ * Build human-readable description for command history.
+ */
+function buildDescription(
+  action: string,
+  beforeState: EventSnapshot | null,
+  afterState: EventSnapshot | null
+): string {
+  switch (action) {
+    case 'modify': {
+      if (!beforeState || !afterState) return 'Modified event';
+
+      const changes: string[] = [];
+      if (beforeState.title !== afterState.title) {
+        changes.push(`title: "${beforeState.title}" → "${afterState.title}"`);
+      }
+      if (beforeState.date !== afterState.date) {
+        changes.push(`date: ${beforeState.date} → ${afterState.date}`);
+      }
+      if (beforeState.time !== afterState.time) {
+        changes.push(`time: ${beforeState.time || 'all-day'} → ${afterState.time || 'all-day'}`);
+      }
+      if (beforeState.type !== afterState.type) {
+        changes.push(`type: ${beforeState.type} → ${afterState.type}`);
+      }
+
+      return `Modified ${afterState.title}: ${changes.join(', ')}`;
+    }
+
+    case 'delete': {
+      if (!beforeState) return 'Deleted event';
+      return `Deleted ${beforeState.title} (${beforeState.date})`;
+    }
+
+    case 'create': {
+      if (!afterState) return 'Created event';
+      return `Created ${afterState.title} on ${afterState.date}`;
+    }
+
+    default:
+      return 'Unknown operation';
+  }
 }
 
 /**
@@ -168,24 +213,30 @@ export async function POST(req: NextRequest) {
           }
         }
 
-        // Build command record for undo history
-        const commandRecord = {
-          id: crypto.randomUUID(),
-          type: 'modify' as const,
-          description: `Modified "${event.title}"`,
+        // Save command to database for undo history
+        const savedCommand = await saveCommand({
+          type: 'modify',
+          description: buildDescription('modify', beforeState, afterState),
+          eventId: event.id,
           beforeState: beforeState ? JSON.stringify(beforeState) : null,
           afterState: afterState ? JSON.stringify(afterState) : null,
-          eventId: event.id,
-          timestamp: new Date(),
-          undone: false,
-        };
+        });
 
         return NextResponse.json({
           ok: true,
           result: {
             event: updatedEvent,
           },
-          commandRecord,
+          commandRecord: {
+            id: savedCommand.id,
+            type: savedCommand.type,
+            description: savedCommand.description,
+            beforeState: savedCommand.beforeState,
+            afterState: savedCommand.afterState,
+            eventId: savedCommand.eventId,
+            timestamp: savedCommand.createdAt,
+            undone: savedCommand.undone,
+          },
         });
       }
 
@@ -232,24 +283,30 @@ export async function POST(req: NextRequest) {
           }
         }
 
-        // Build command record for undo history
-        const commandRecord = {
-          id: crypto.randomUUID(),
-          type: 'delete' as const,
-          description: `Deleted "${event.title}"`,
+        // Save command to database for undo history
+        const savedCommand = await saveCommand({
+          type: 'delete',
+          description: buildDescription('delete', beforeState, null),
+          eventId: event.id,
           beforeState: beforeState ? JSON.stringify(beforeState) : null,
           afterState: null,
-          eventId: event.id,
-          timestamp: new Date(),
-          undone: false,
-        };
+        });
 
         return NextResponse.json({
           ok: true,
           result: {
             deletedEventId: eventId,
           },
-          commandRecord,
+          commandRecord: {
+            id: savedCommand.id,
+            type: savedCommand.type,
+            description: savedCommand.description,
+            beforeState: savedCommand.beforeState,
+            afterState: savedCommand.afterState,
+            eventId: savedCommand.eventId,
+            timestamp: savedCommand.createdAt,
+            undone: savedCommand.undone,
+          },
         });
       }
 
@@ -337,24 +394,30 @@ export async function POST(req: NextRequest) {
           }
         }
 
-        // Build command record for undo history
-        const commandRecord = {
-          id: crypto.randomUUID(),
-          type: 'create' as const,
-          description: `Created "${newEvent.title}"`,
+        // Save command to database for undo history
+        const savedCommand = await saveCommand({
+          type: 'create',
+          description: buildDescription('create', null, afterState),
+          eventId: createdEvent.id,
           beforeState: null,
           afterState: afterState ? JSON.stringify(afterState) : null,
-          eventId: createdEvent.id,
-          timestamp: new Date(),
-          undone: false,
-        };
+        });
 
         return NextResponse.json({
           ok: true,
           result: {
             event: createdEvent,
           },
-          commandRecord,
+          commandRecord: {
+            id: savedCommand.id,
+            type: savedCommand.type,
+            description: savedCommand.description,
+            beforeState: savedCommand.beforeState,
+            afterState: savedCommand.afterState,
+            eventId: savedCommand.eventId,
+            timestamp: savedCommand.createdAt,
+            undone: savedCommand.undone,
+          },
         });
       }
 
@@ -364,9 +427,16 @@ export async function POST(req: NextRequest) {
         // Track results
         const deleted: string[] = [];
         const errors: string[] = [];
+        const savedCommands: any[] = [];
+
+        // Parse beforeState array (array of EventSnapshots)
+        const beforeStateArray: EventSnapshot[] = beforeState
+          ? JSON.parse(beforeState as any)
+          : [];
 
         // Delete each event (try-catch per event so one failure doesn't block others)
-        for (const eventId of eventIds) {
+        for (let i = 0; i < eventIds.length; i++) {
+          const eventId = eventIds[i];
           try {
             // Fetch event from database
             const event = await prisma.event.findUnique({
@@ -385,12 +455,35 @@ export async function POST(req: NextRequest) {
               continue;
             }
 
+            // Get beforeState for this specific event
+            const eventBeforeState = beforeStateArray.find((s) => s.id === eventId);
+
             // Delete from local database
             await prisma.event.delete({
               where: { id: eventId },
             });
 
             deleted.push(eventId);
+
+            // Save individual command for this deletion (so each can be undone separately)
+            const savedCommand = await saveCommand({
+              type: 'delete',
+              description: `Deleted "${event.title}" (${event.date})`,
+              eventId: event.id,
+              beforeState: eventBeforeState ? JSON.stringify(eventBeforeState) : null,
+              afterState: null,
+            });
+
+            savedCommands.push({
+              id: savedCommand.id,
+              type: savedCommand.type,
+              description: savedCommand.description,
+              beforeState: savedCommand.beforeState,
+              afterState: savedCommand.afterState,
+              eventId: savedCommand.eventId,
+              timestamp: savedCommand.createdAt,
+              undone: savedCommand.undone,
+            });
 
             // If event has googleEventId, attempt to delete from Google Calendar
             if (event.googleEventId && accessToken) {
@@ -415,25 +508,13 @@ export async function POST(req: NextRequest) {
           }
         }
 
-        // Build command record for undo history (not used in Plan 03, prepared for Plan 04)
-        const commandRecord = {
-          id: crypto.randomUUID(),
-          type: 'delete' as const,
-          description: `Bulk deleted ${deleted.length} event${deleted.length === 1 ? '' : 's'}`,
-          beforeState: beforeState ? JSON.stringify(beforeState) : null,
-          afterState: null,
-          eventId: deleted[0] || '', // First deleted event ID
-          timestamp: new Date(),
-          undone: false,
-        };
-
         return NextResponse.json({
           ok: true,
           result: {
             deleted,
             errors,
           },
-          commandRecord,
+          commandRecords: savedCommands, // Multiple commands for bulk delete
         });
       }
 

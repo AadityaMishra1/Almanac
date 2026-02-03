@@ -4,10 +4,11 @@ import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
 import { useEffect, useState, FormEvent, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { MessageCircle, X, Square } from 'lucide-react';
+import { MessageCircle, X, Square, Clock } from 'lucide-react';
 import * as Dialog from '@radix-ui/react-dialog';
 import { ChatMessages } from './ChatMessages';
 import { ChatInput } from './ChatInput';
+import { ChatHistory } from './ChatHistory';
 import {
   loadChatMessages,
   saveChatMessages,
@@ -18,6 +19,7 @@ export function ChatWidget() {
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState('');
   const [initialMessagesLoaded, setInitialMessagesLoaded] = useState(false);
+  const [activeTab, setActiveTab] = useState<'chat' | 'history'>('chat');
   const router = useRouter();
 
   // Create chat transport
@@ -89,38 +91,73 @@ export function ChatWidget() {
           onInteractOutside={(e) => e.preventDefault()}
         >
           {/* Header */}
-          <div className="flex items-center justify-between border-b border-zinc-200 px-6 py-4">
-            <Dialog.Title className="text-lg font-semibold text-zinc-900">
-              AI Assistant
-            </Dialog.Title>
-            <div className="flex items-center gap-2">
-              {isLoading && (
-                <button
-                  onClick={stop}
-                  className="flex h-8 items-center gap-1.5 rounded-md px-2 text-sm text-zinc-600 hover:bg-zinc-100"
-                >
-                  <Square className="h-3 w-3" />
-                  Stop
-                </button>
-              )}
-              <Dialog.Close asChild>
-                <button className="flex h-8 w-8 items-center justify-center rounded-md text-zinc-600 hover:bg-zinc-100">
-                  <X className="h-5 w-5" />
-                </button>
-              </Dialog.Close>
+          <div className="border-b border-zinc-200">
+            <div className="flex items-center justify-between px-6 py-4">
+              <Dialog.Title className="text-lg font-semibold text-zinc-900">
+                AI Assistant
+              </Dialog.Title>
+              <div className="flex items-center gap-2">
+                {isLoading && activeTab === 'chat' && (
+                  <button
+                    onClick={stop}
+                    className="flex h-8 items-center gap-1.5 rounded-md px-2 text-sm text-zinc-600 hover:bg-zinc-100"
+                  >
+                    <Square className="h-3 w-3" />
+                    Stop
+                  </button>
+                )}
+                <Dialog.Close asChild>
+                  <button className="flex h-8 w-8 items-center justify-center rounded-md text-zinc-600 hover:bg-zinc-100">
+                    <X className="h-5 w-5" />
+                  </button>
+                </Dialog.Close>
+              </div>
+            </div>
+
+            {/* Tab selector */}
+            <div className="flex border-t border-zinc-200">
+              <button
+                onClick={() => setActiveTab('chat')}
+                className={`flex flex-1 items-center justify-center gap-2 border-b-2 px-4 py-3 text-sm font-medium transition-colors ${
+                  activeTab === 'chat'
+                    ? 'border-blue-600 text-blue-600'
+                    : 'border-transparent text-zinc-600 hover:text-zinc-900'
+                }`}
+              >
+                <MessageCircle className="h-4 w-4" />
+                Chat
+              </button>
+              <button
+                onClick={() => setActiveTab('history')}
+                className={`flex flex-1 items-center justify-center gap-2 border-b-2 px-4 py-3 text-sm font-medium transition-colors ${
+                  activeTab === 'history'
+                    ? 'border-blue-600 text-blue-600'
+                    : 'border-transparent text-zinc-600 hover:text-zinc-900'
+                }`}
+              >
+                <Clock className="h-4 w-4" />
+                History
+              </button>
             </div>
           </div>
 
-          {/* Messages area */}
-          <ChatMessages messages={messages} isLoading={isLoading} onOperationComplete={handleOperationComplete} />
+          {/* Content area */}
+          {activeTab === 'chat' ? (
+            <>
+              {/* Messages area */}
+              <ChatMessages messages={messages} isLoading={isLoading} onOperationComplete={handleOperationComplete} />
 
-          {/* Input area */}
-          <ChatInput
-            value={input}
-            onChange={setInput}
-            onSubmit={handleSubmit}
-            isLoading={isLoading}
-          />
+              {/* Input area */}
+              <ChatInput
+                value={input}
+                onChange={setInput}
+                onSubmit={handleSubmit}
+                isLoading={isLoading}
+              />
+            </>
+          ) : (
+            <ChatHistory onOperationComplete={handleOperationComplete} />
+          )}
         </Dialog.Content>
       </Dialog.Portal>
     </Dialog.Root>
