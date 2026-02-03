@@ -6,23 +6,23 @@ See: .planning/PROJECT.md (updated 2026-02-01)
 
 **Core value:** Reliable PDF extraction that works across all syllabus formats so students spend 2 minutes uploading instead of 30+ minutes manually entering dates
 
-**Current focus:** Phase 4 - Event Management & Sync (COMPLETE)
+**Current focus:** Phase 5 - AI Chat Interface (IN PROGRESS)
 
 ## Current Position
 
-Phase: 4 of 5 (Event Management & Sync)
-Plan: 3 of 3 in phase (04-01, 04-02, 04-03 complete)
-Status: Phase complete - All 6 EVENT requirements verified, conflict resolution implemented
-Last activity: 2026-02-02 — Completed 04-03-PLAN.md (Conflict Resolution & Phase Verification)
+Phase: 5 of 5 (AI Chat Interface)
+Plan: 1 of 5 in phase (05-01 complete)
+Status: In progress - AI foundation layer complete, ready for chat API route
+Last activity: 2026-02-03 — Completed 05-01-PLAN.md (AI Foundation Layer)
 
-Progress: [█████████░] 75% (15/20 plans complete, 4/5 phases overall)
+Progress: [█████████░] 80% (16/20 plans complete, 4/5 phases overall)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 15
-- Average duration: 29 minutes
-- Total execution time: 7.6 hours (438 minutes)
+- Total plans completed: 16
+- Average duration: 28 minutes
+- Total execution time: 7.8 hours (449 minutes)
 
 **By Phase:**
 
@@ -32,9 +32,10 @@ Progress: [█████████░] 75% (15/20 plans complete, 4/5 phases
 | 02-enhanced-pdf-extraction | 5/5 | 50min | 10min |
 | 03-calendar-ui | 3/3 | 36min | 12min |
 | 04-event-management-sync | 3/3 | 306min | 102min |
+| 05-ai-chat-interface | 1/5 | 11min | 11min |
 
 **Recent Trend:**
-- Last 5 plans: 03-03 (28min), 04-01 (4min), 04-02 (3min), 04-03 (299min)
+- Last 5 plans: 04-01 (4min), 04-02 (3min), 04-03 (299min), 05-01 (11min)
 - Note: 04-03 included comprehensive human verification checkpoint (4h 59m total, 299min execution)
 
 *Updated after each plan completion*
@@ -187,6 +188,17 @@ Recent decisions affecting current work:
 - Phase 4 complete and production-ready
 - User feedback: merge interface could be simplified (future improvement: advanced mode only)
 
+**From 05-01 (AI Foundation Layer):**
+- Five AI tools (modify, delete, create, query, bulk-delete) with Zod validation and type safety
+- Tools return ConfirmationPayload for destructive operations (UI confirms before execution)
+- Tools use prisma directly (not server actions) since they run in API route context
+- System prompt builder dynamically injects events, courses, date context for Claude
+- Natural language date parser with chrono-node supporting relative dates and academic terms
+- Academic term preprocessing: "finals week" and "spring break" mapped to concrete dates before chrono parsing
+- Source permission checks: all modification tools enforce event.source === EventSource.ALMANAC
+- Conflict detection integrated into tools (not delegated to UI) with warnings in confirmation payload
+- AI SDK tool() function requires inputSchema (not parameters) and throws errors (not returns)
+
 ### Pending Todos
 
 None yet.
@@ -219,10 +231,10 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-02-02T23:44:29Z — Completed 04-03-PLAN.md
-Stopped at: Phase 4 complete - All EVENT requirements verified, conflict resolution implemented
+Last session: 2026-02-03T04:31:54Z — Completed 05-01-PLAN.md
+Stopped at: AI foundation layer complete - tools, prompts, date parser ready
 Resume file: None
-Next: Phase 5 (AI Chat Interface) - 5 plans remaining
+Next: 05-02 (Chat API Route) - 4 plans remaining in Phase 5
 
 ---
 *State initialized: 2026-02-01*
