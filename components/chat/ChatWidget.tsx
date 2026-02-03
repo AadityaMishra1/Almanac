@@ -2,7 +2,8 @@
 
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
-import { useEffect, useState, FormEvent } from 'react';
+import { useEffect, useState, FormEvent, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { MessageCircle, X, Square } from 'lucide-react';
 import * as Dialog from '@radix-ui/react-dialog';
 import { ChatMessages } from './ChatMessages';
@@ -17,6 +18,7 @@ export function ChatWidget() {
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState('');
   const [initialMessagesLoaded, setInitialMessagesLoaded] = useState(false);
+  const router = useRouter();
 
   // Create chat transport
   const transport = new DefaultChatTransport({
@@ -29,6 +31,11 @@ export function ChatWidget() {
   });
 
   const isLoading = status === 'streaming';
+
+  // Stable callback for operation completion (triggers calendar refresh)
+  const handleOperationComplete = useCallback(() => {
+    router.refresh();
+  }, [router]);
 
   // Load messages from localStorage on mount
   useEffect(() => {
@@ -105,7 +112,7 @@ export function ChatWidget() {
           </div>
 
           {/* Messages area */}
-          <ChatMessages messages={messages} isLoading={isLoading} />
+          <ChatMessages messages={messages} isLoading={isLoading} onOperationComplete={handleOperationComplete} />
 
           {/* Input area */}
           <ChatInput
