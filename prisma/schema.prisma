@@ -56,3 +56,18 @@ model Event {
   @@index([source])
   @@map("events")
 }
+
+model ChatCommand {
+  id          String   @id @default(uuid())
+  type        String   // 'modify' | 'delete' | 'create'
+  description String   // Human-readable: "Moved CSC 316 Midterm to March 15"
+  eventId     String   // The event that was affected
+  beforeState String?  // JSON serialized EventSnapshot (null for create)
+  afterState  String?  // JSON serialized EventSnapshot (null for delete)
+  undone      Boolean  @default(false)
+
+  createdAt   DateTime @default(now())
+
+  @@index([createdAt])
+  @@map("chat_commands")
+}
