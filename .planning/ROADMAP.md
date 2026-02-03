@@ -128,10 +128,14 @@ Plans:
   6. Chat interface shows confirmation dialog before executing any changes
   7. User can undo or revert chat-initiated changes with single action
 
-**Plans**: TBD
+**Plans**: 5 plans
 
 Plans:
-- TBD during planning
+- [ ] 05-01-PLAN.md — Install AI dependencies, create tool definitions with Zod schemas, date parser with academic refiners, and system prompt
+- [ ] 05-02-PLAN.md — Build chat API route with Claude streaming and floating chat widget UI on calendar page
+- [ ] 05-03-PLAN.md — Confirmation flow with diff preview, bulk checkboxes, conflict warnings, and execute endpoint
+- [ ] 05-04-PLAN.md — Undo/revert system with ChatCommand persistence, undo API, and version-control-style history panel
+- [ ] 05-05-PLAN.md — End-to-end verification checkpoint for all 7 CHAT requirements
 
 ## Progress
 
@@ -144,7 +148,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | 2. Enhanced PDF Extraction | 5/5 | ✓ Complete | 2026-02-02 |
 | 3. Calendar UI | 3/3 | ✓ Complete | 2026-02-02 |
 | 4. Event Management & Sync | 3/3 | ✓ Complete | 2026-02-02 |
-| 5. AI Chat Interface | 0/TBD | Not started | - |
+| 5. AI Chat Interface | 0/5 | Not started | - |
 
 ---
 *Roadmap created: 2026-02-01*
