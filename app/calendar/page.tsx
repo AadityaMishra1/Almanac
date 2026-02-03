@@ -1,6 +1,7 @@
 import { getEvents } from "@/app/server-actions/events";
 import { getCourses } from "@/app/server-actions/courses";
 import { CalendarView } from "@/components/calendar/calendar-view";
+import { ChatWidget } from "@/components/chat/ChatWidget";
 import Link from "next/link";
 import { Upload } from "lucide-react";
 import { getServerSession } from "next-auth";
@@ -79,6 +80,8 @@ export default async function CalendarPage() {
         courses={coursesResult.courses}
         hasGoogleAuth={hasGoogleAuth}
       />
+
+      <ChatWidget />
     </main>
   );
 }
