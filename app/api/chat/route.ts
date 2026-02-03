@@ -1,4 +1,4 @@
-import { createAnthropic } from '@ai-sdk/anthropic';
+import { createGroq } from '@ai-sdk/groq';
 import { streamText } from 'ai';
 import {
   modifyEventTool,
@@ -14,10 +14,10 @@ import { EventSnapshot } from '@/types/chat';
 export async function POST(req: Request) {
   try {
     // Validate API key exists
-    if (!process.env.ANTHROPIC_API_KEY) {
+    if (!process.env.GROQ_API_KEY) {
       return new Response(
         JSON.stringify({
-          error: 'ANTHROPIC_API_KEY is not configured. Please add it to your environment variables.',
+          error: 'GROQ_API_KEY is not configured. Please add it to your environment variables.',
         }),
         {
           status: 500,
@@ -56,14 +56,14 @@ export async function POST(req: Request) {
       currentDate,
     });
 
-    // Create Anthropic client
-    const anthropic = createAnthropic({
-      apiKey: process.env.ANTHROPIC_API_KEY,
+    // Create Groq client
+    const groq = createGroq({
+      apiKey: process.env.GROQ_API_KEY,
     });
 
     // Stream text with tools
     const result = streamText({
-      model: anthropic('claude-sonnet-4-5-20250929'),
+      model: groq('llama-3-groq-70b-tool-use'),
       system: systemPrompt,
       messages,
       tools: {
