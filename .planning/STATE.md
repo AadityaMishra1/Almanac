@@ -11,18 +11,18 @@ See: .planning/PROJECT.md (updated 2026-02-01)
 ## Current Position
 
 Phase: 5 of 5 (AI Chat Interface)
-Plan: 1 of 5 in phase (05-01 complete)
-Status: In progress - AI foundation layer complete, ready for chat API route
-Last activity: 2026-02-03 — Completed 05-01-PLAN.md (AI Foundation Layer)
+Plan: 2 of 5 in phase (05-01, 05-02 complete)
+Status: In progress - Chat API route and widget complete, ready for confirmation UI
+Last activity: 2026-02-03 — Completed 05-02-PLAN.md (Chat API Route)
 
-Progress: [█████████░] 80% (16/20 plans complete, 4/5 phases overall)
+Progress: [█████████░] 85% (17/20 plans complete, 4/5 phases overall)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 16
-- Average duration: 28 minutes
-- Total execution time: 7.8 hours (449 minutes)
+- Total plans completed: 17
+- Average duration: 27 minutes
+- Total execution time: 7.9 hours (454 minutes)
 
 **By Phase:**
 
@@ -32,10 +32,10 @@ Progress: [█████████░] 80% (16/20 plans complete, 4/5 phases
 | 02-enhanced-pdf-extraction | 5/5 | 50min | 10min |
 | 03-calendar-ui | 3/3 | 36min | 12min |
 | 04-event-management-sync | 3/3 | 306min | 102min |
-| 05-ai-chat-interface | 1/5 | 11min | 11min |
+| 05-ai-chat-interface | 2/5 | 16min | 8min |
 
 **Recent Trend:**
-- Last 5 plans: 04-01 (4min), 04-02 (3min), 04-03 (299min), 05-01 (11min)
+- Last 5 plans: 04-02 (3min), 04-03 (299min), 05-01 (11min), 05-02 (5min)
 - Note: 04-03 included comprehensive human verification checkpoint (4h 59m total, 299min execution)
 
 *Updated after each plan completion*
@@ -199,6 +199,18 @@ Recent decisions affecting current work:
 - Conflict detection integrated into tools (not delegated to UI) with warnings in confirmation payload
 - AI SDK tool() function requires inputSchema (not parameters) and throws errors (not returns)
 
+**From 05-02 (Chat API Route):**
+- POST /api/chat endpoint streams Claude Sonnet 4.5 responses with all 5 AI tools enabled
+- AI SDK v6 uses parts-based UIMessage API (message.parts[] instead of message.content)
+- DefaultChatTransport handles HTTP streaming to chat API route
+- Floating chat widget on calendar page (bottom-right FAB, Radix Dialog when expanded)
+- Message persistence: localStorage for messages, sessionStorage for session detection
+- Filtered persistence: only user/assistant messages saved (excludes tool invocations)
+- New browser sessions start with fresh conversation, page reloads preserve history
+- Chat dialog prevents accidental close (onInteractOutside preventDefault)
+- Mobile responsive with near-full-screen dialog (95vw, 90vh)
+- Google Calendar events accessible to AI via synced events in database (CHAT-04)
+
 ### Pending Todos
 
 None yet.
@@ -231,10 +243,10 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-02-03T04:31:54Z — Completed 05-01-PLAN.md
-Stopped at: AI foundation layer complete - tools, prompts, date parser ready
+Last session: 2026-02-03T04:41:37Z — Completed 05-02-PLAN.md
+Stopped at: Chat API route and widget complete - streaming responses, message persistence working
 Resume file: None
-Next: 05-02 (Chat API Route) - 4 plans remaining in Phase 5
+Next: 05-03 (Confirmation UI) - 3 plans remaining in Phase 5
 
 ---
 *State initialized: 2026-02-01*
