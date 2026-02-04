@@ -2,7 +2,7 @@
 
 ## Overview
 
-Almanac has been migrated from Anthropic Claude to **Groq's Llama-3-Groq-70B-Tool-Use** model, which is:
+Almanac has been migrated from Anthropic Claude to **Groq's Llama-3.3-70B-Versatile** model, which is:
 
 - ✅ **Completely free** (no credit card required)
 - ✅ **#1 on Berkeley Function Calling Leaderboard** (beats GPT-4 and Claude 3.5 Sonnet)
@@ -42,15 +42,15 @@ npm run dev
 
 ## Available Models
 
-The chat route is configured to use **`llama-3-groq-70b-tool-use`** by default.
+The chat route is configured to use **`llama-3.3-70b-versatile`** by default.
 
 Alternative models you can try (edit `app/api/chat/route.ts`):
 
 | Model | Best For | Speed |
 |-------|----------|-------|
-| `llama-3-groq-70b-tool-use` | Tool calling, event operations (recommended) | Fast |
-| `llama-3.1-70b-versatile` | General chat, good tool support | Fast |
-| `llama-3-groq-8b-tool-use` | Lower latency, faster responses | Very Fast |
+| `llama-3.3-70b-versatile` | Tool calling, event operations (recommended) | Fast |
+| `llama-3.1-8b-instant` | Lower latency, faster responses | Very Fast |
+| `qwen/qwen3-32b` | Alternative with good reasoning | Fast |
 
 ## Verification
 
@@ -74,8 +74,8 @@ After setup, test the chat:
 - Consider using the 8B model for lower token usage
 
 **Tool calling not working:**
-- Ensure you're using `llama-3-groq-70b-tool-use` model
-- This model is specifically trained for function calling
+- Ensure you're using `llama-3.3-70b-versatile` model
+- This model supports function/tool calling
 - Check console for API errors
 
 ## Why Groq?
