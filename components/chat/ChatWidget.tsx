@@ -18,18 +18,41 @@ import {
 export function ChatWidget() {
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState('');
-  const [initialMessagesLoaded, setInitialMessagesLoaded] = useState(false);
   const [activeTab, setActiveTab] = useState<'chat' | 'history'>('chat');
   const router = useRouter();
 
-  // Create chat transport
-  const transport = new DefaultChatTransport({
-    api: '/api/chat',
+  // Load messages BEFORE useChat initialization to prevent race condition
+  const [initialMessages] = useState(() => {
+    if (typeof window === 'undefined') return [];
+    isNewSession(); // Check and clear if new session
+    return loadChatMessages();
   });
 
-  // Initialize useChat with transport
-  const { messages, sendMessage, stop, setMessages, status } = useChat({
+  // Create chat transport with timeout
+  const transport = new DefaultChatTransport({
+    api: '/api/chat',
+    fetch: async (url, options) => {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout
+
+      try {
+        const response = await fetch(url, {
+          ...options,
+          signal: controller.signal,
+        });
+        clearTimeout(timeoutId);
+        return response;
+      } catch (error) {
+        clearTimeout(timeoutId);
+        throw error;
+      }
+    },
+  });
+
+  // Initialize useChat with preloaded messages
+  const { messages, sendMessage, stop, setMessages, status, error } = useChat({
     transport,
+    initialMessages, // KEY FIX: Initialize with messages from localStorage
   });
 
   const isLoading = status === 'streaming';
@@ -39,25 +62,19 @@ export function ChatWidget() {
     router.refresh();
   }, [router]);
 
-  // Load messages from localStorage on mount
+  // Add error handling callback
   useEffect(() => {
-    // Check if new session and clear if needed
-    isNewSession();
-
-    // Load persisted messages
-    const persistedMessages = loadChatMessages();
-    if (persistedMessages.length > 0) {
-      setMessages(persistedMessages);
+    if (error) {
+      console.error('Chat error:', error);
     }
-    setInitialMessagesLoaded(true);
-  }, [setMessages]);
+  }, [error]);
 
   // Save messages to localStorage when they change (after streaming completes)
   useEffect(() => {
-    if (initialMessagesLoaded && !isLoading && messages.length > 0) {
+    if (!isLoading && messages.length > 0) {
       saveChatMessages(messages);
     }
-  }, [messages, isLoading, initialMessagesLoaded]);
+  }, [messages, isLoading]);
 
   // Handle form submission
   const handleSubmit = (e: FormEvent) => {
@@ -144,6 +161,13 @@ export function ChatWidget() {
           {/* Content area */}
           {activeTab === 'chat' ? (
             <>
+              {/* Error display */}
+              {error && (
+                <div className="mx-4 mt-4 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+                  <strong>Error:</strong> {error.message}
+                </div>
+              )}
+
               {/* Messages area */}
               <ChatMessages messages={messages} isLoading={isLoading} onOperationComplete={handleOperationComplete} />
 

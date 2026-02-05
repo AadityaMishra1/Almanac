@@ -23,15 +23,12 @@ export function loadChatMessages(): UIMessage[] {
 
 /**
  * Save chat messages to localStorage.
- * Only saves user and assistant messages (excludes tool invocations for efficiency).
+ * Saves ALL messages including tool results for confirmation state preservation.
  */
 export function saveChatMessages(messages: UIMessage[]): void {
   try {
-    // Filter to only user and assistant messages
-    const messagesToSave = messages.filter(
-      (msg) => msg.role === 'user' || msg.role === 'assistant'
-    );
-    localStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(messagesToSave));
+    // Save ALL messages including tool results to preserve confirmation dialogs
+    localStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(messages));
   } catch (error) {
     console.warn('Failed to save chat messages to localStorage:', error);
   }

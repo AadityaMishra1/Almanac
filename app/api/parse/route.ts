@@ -5,6 +5,7 @@ import type { EventWithConfidence } from "@/lib/events/types";
 import { getOrCreateCourse } from "@/app/server-actions/courses";
 import { createEvent } from "@/app/server-actions/events";
 import { EventSource } from "@prisma/client";
+import { detectCalendarProvider } from "@/lib/calendar/calendar-provider";
 
 export const runtime = "nodejs";
 
@@ -63,8 +64,15 @@ export async function POST(request: Request) {
     // Use semester from form data or default to Spring 2026
     const semester = (formData.get("semester") as string) || "Spring 2026";
 
+    // Detect calendar provider from syllabus content
+    const calendarProvider = detectCalendarProvider(fullContent);
+
     // Extract events with confidence scoring (includes post-adjustment via adjustConfidence)
-    const eventsWithConfidence = await extractEventsWithConfidence(fullContent, semester);
+    const eventsWithConfidence = await extractEventsWithConfidence(
+      fullContent,
+      semester,
+      calendarProvider
+    );
 
     if (eventsWithConfidence.length === 0) {
       return NextResponse.json(

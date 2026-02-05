@@ -1,5 +1,6 @@
 import { EventWithConfidence, EventWithConfidenceSchema } from './types';
 import { adjustConfidence } from './categorize';
+import type { CalendarProvider } from '../calendar/calendar-provider';
 
 type GroqChatCompletionResponse = {
   choices: Array<{
@@ -46,6 +47,7 @@ function safeParseJson(text: string) {
  * Extract events with confidence scoring from syllabus text using Groq LLM.
  *
  * Enhanced extraction with:
+ * - Multi-calendar support via CalendarProvider
  * - Semester bounds validation
  * - Confidence scoring for each extracted event
  * - Type categorization (exam/quiz/assignment/reading/project/lab)
@@ -53,14 +55,25 @@ function safeParseJson(text: string) {
  *
  * @param text - Syllabus text (from PDF or OCR)
  * @param semester - Semester name for date validation (e.g., "Spring 2026")
+ * @param calendarProvider - Calendar provider for semester bounds and term parsing
  * @returns Array of events with confidence metadata
  */
 export async function extractEventsWithConfidence(
   text: string,
-  semester: string
+  semester: string,
+  calendarProvider: CalendarProvider
 ): Promise<EventWithConfidence[]> {
   const apiKey = process.env.GROQ_API_KEY;
   if (!apiKey) throw new Error('Missing GROQ_API_KEY env var.');
+
+  // Parse academic terms using calendar provider
+  const transformedText = calendarProvider.parseAcademicTerms(text, semester);
+
+  // Get semester bounds from calendar provider
+  const bounds = calendarProvider.getSemesterBounds(semester);
+  const boundsText = bounds
+    ? `- ${semester}: ${bounds.start.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })} - ${bounds.end.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}`
+    : `- Semester: ${semester} (bounds will be inferred from syllabus)`;
 
   // Enhanced prompt with confidence scoring and semester constraints
   const prompt = [
@@ -71,13 +84,24 @@ export async function extractEventsWithConfidence(
     '',
     `Semester: ${semester}`,
     'Semester bounds:',
-    '- Spring 2026: January 12 - May 15',
-    '- Summer 2026: May 18 - August 15',
-    '- Fall 2026: August 20 - December 20',
+    boundsText,
     '',
-    'CRITICAL: Do not infer dates - only extract dates explicitly mentioned in the syllabus.',
-    'If a due date is ambiguous or not stated, omit that event entirely.',
-    'Assume US date format (MM/DD) unless YYYY-MM-DD format is used.',
+    'EXTRACTION POLICY:',
+    '1. PRIMARY: Extract dates explicitly stated in text (high confidence)',
+    '   - Example: "Midterm Exam: 3/15" → Extract as March 15',
+    '2. SECONDARY: Infer dates from clear patterns (mark confidence.date_extracted: false)',
+    '   - "Homework due every Friday" → Extract all Fridays in semester',
+    '   - "Exam in Week 8" → Calculate date from semester start',
+    '   - "Quiz every other Tuesday" → Extract pattern-based Tuesdays',
+    '3. OMIT: Truly ambiguous cases with no context',
+    '   - "Reading due soon" → Omit (no date)',
+    '   - "TBD" → Omit (to be determined)',
+    '',
+    'DATE FORMAT DETECTION:',
+    '- Analyze the syllabus to detect date format (US: MM/DD, EU: DD/MM, ISO: YYYY-MM-DD)',
+    '- If dates with day > 12 appear in first position (e.g., "15/03"), use DD/MM format',
+    '- If dates use dashes (e.g., "2026-03-15"), use ISO format',
+    '- Default to US format (MM/DD) if ambiguous',
     '',
     '## OUTPUT FORMAT',
     '',
@@ -124,14 +148,56 @@ export async function extractEventsWithConfidence(
     '',
     '## EXAMPLES',
     '',
-    'Input: "Midterm Exam: March 15"',
+    'Example 1 - Explicit date (US format):',
+    'Input: "Midterm Exam: 3/15"',
     'Output: { "title": "Midterm Exam", "date": "2026-03-15", "type": "exam", "description": "", "confidence": { "overall": 0.9, "date_extracted": true, "type_inferred": false, "reasoning": "Date and type explicitly stated" } }',
     '',
-    'Input: "Reading Response due Friday" (no date given)',
-    'Output: [] // Omit - date ambiguous',
+    'Example 2 - Pattern-based (weekly):',
+    'Input: "Problem sets due every Friday at 11:59pm"',
+    'Output: [',
+    '  { "title": "Problem Set", "date": "2026-01-17", "type": "assignment", "confidence": { "overall": 0.75, "date_extracted": false, "type_inferred": false, "reasoning": "Weekly pattern inferred" } },',
+    '  { "title": "Problem Set", "date": "2026-01-24", "type": "assignment", "confidence": { "overall": 0.75, "date_extracted": false, "type_inferred": false, "reasoning": "Weekly pattern inferred" } }',
+    '  // ... continue for all Fridays in semester',
+    ']',
     '',
+    'Example 3 - ISO format:',
+    'Input: "Final Project: 2026-05-08"',
+    'Output: { "title": "Final Project", "date": "2026-05-08", "type": "project", "confidence": { "overall": 0.95, "date_extracted": true, "type_inferred": false, "reasoning": "ISO date format, explicit type" } }',
+    '',
+    'Example 4 - EU format (DD/MM):',
+    'Input: "Quiz on 25/03"',
+    'Output: { "title": "Quiz", "date": "2026-03-25", "type": "quiz", "confidence": { "overall": 0.85, "date_extracted": true, "type_inferred": false, "reasoning": "DD/MM format detected (day > 12)" } }',
+    '',
+    'Example 5 - Week-based inference:',
+    'Input: "Exam in Week 8" (assuming semester starts Jan 12)',
+    'Output: { "title": "Exam", "date": "2026-03-02", "type": "exam", "confidence": { "overall": 0.7, "date_extracted": false, "type_inferred": false, "reasoning": "Date calculated from week number" } }',
+    '',
+    'Example 6 - Bi-weekly pattern:',
+    'Input: "Lab reports due every other Tuesday starting Feb 3"',
+    'Output: [',
+    '  { "title": "Lab Report", "date": "2026-02-03", "type": "lab", "confidence": { "overall": 0.8, "date_extracted": true, "type_inferred": false, "reasoning": "Start date explicit, pattern clear" } },',
+    '  { "title": "Lab Report", "date": "2026-02-17", "type": "lab", "confidence": { "overall": 0.75, "date_extracted": false, "type_inferred": false, "reasoning": "Bi-weekly pattern inferred" } }',
+    '  // ... continue bi-weekly',
+    ']',
+    '',
+    'Example 7 - Multiple dates:',
+    'Input: "Reading: Chapters 1-3 (due 1/20), Chapters 4-6 (due 2/3)"',
+    'Output: [',
+    '  { "title": "Reading: Chapters 1-3", "date": "2026-01-20", "type": "reading", "confidence": { "overall": 0.85, "date_extracted": true, "type_inferred": false } },',
+    '  { "title": "Reading: Chapters 4-6", "date": "2026-02-03", "type": "reading", "confidence": { "overall": 0.85, "date_extracted": true, "type_inferred": false } }',
+    ']',
+    '',
+    'Example 8 - Ambiguous (OMIT):',
+    'Input: "Reading Response due Friday" (no specific date)',
+    'Output: [] // Omit - cannot determine which Friday',
+    '',
+    'Example 9 - No due date (OMIT):',
     'Input: "Chapter 1-3" (no due date)',
     'Output: [] // Omit - this is reading content, not a due date',
+    '',
+    'Example 10 - TBD (OMIT):',
+    'Input: "Final Exam: TBD"',
+    'Output: [] // Omit - date to be determined',
     '',
     'Do not include:',
     '- Class meeting times (e.g., "Mon/Wed 10-11am")',
@@ -140,7 +206,7 @@ export async function extractEventsWithConfidence(
     '',
     '## SYLLABUS TEXT',
     '',
-    text,
+    transformedText,
   ].join('\n');
 
   const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
