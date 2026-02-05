@@ -17,6 +17,11 @@ type ConfirmationState = 'pending' | 'approved' | 'rejected' | 'executing' | 'do
 
 export function ChatMessages({ messages, isLoading, onOperationComplete }: ChatMessagesProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  
+  // Debug: Log messages to console
+  useEffect(() => {
+    console.log('[ChatMessages] Messages received:', JSON.stringify(messages, null, 2));
+  }, [messages]);
 
   // Track confirmation state per tool call ID
   const [confirmationStates, setConfirmationStates] = useState<Map<string, ConfirmationState>>(
@@ -209,12 +214,27 @@ export function ChatMessages({ messages, isLoading, onOperationComplete }: ChatM
 
         // Assistant message
         if (message.role === 'assistant') {
+          // Debug: Log part types to understand structure
+          console.log('[ChatMessages] Assistant message parts:', message.parts?.map((p: any) => ({
+            type: p.type,
+            hasResult: 'result' in p,
+            hasToolCallId: 'toolCallId' in p,
+            resultType: typeof p.result,
+          })));
+
           // Extract text from parts
           const textParts = message.parts.filter((p) => p.type === 'text');
           const text = textParts.map((p: any) => p.text).join('');
 
-          // Extract tool result parts
-          const toolResultParts = message.parts.filter((p) => p.type === 'tool-result');
+          // Extract tool result parts - check for 'tool-result' or any part with a result property
+          // The AI SDK might use different types: 'tool-result', 'tool-call' with result, etc.
+          const toolResultParts = message.parts.filter((p: any) =>
+            p.type === 'tool-result' ||
+            (p.result !== undefined && p.toolCallId !== undefined) ||
+            (p.type === 'tool-call' && 'result' in p)
+          );
+
+          console.log('[ChatMessages] Found', toolResultParts.length, 'tool result parts');
 
           return (
             <div key={message.id} className="flex flex-col gap-2 items-start">

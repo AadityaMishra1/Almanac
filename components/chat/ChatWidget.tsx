@@ -2,9 +2,9 @@
 
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
-import { useEffect, useState, FormEvent, useCallback } from 'react';
+import { useEffect, useState, FormEvent, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { MessageCircle, X, Square, Clock } from 'lucide-react';
+import { MessageCircle, X, Square, Clock, AlertCircle } from 'lucide-react';
 import * as Dialog from '@radix-ui/react-dialog';
 import { ChatMessages } from './ChatMessages';
 import { ChatInput } from './ChatInput';
@@ -19,7 +19,12 @@ export function ChatWidget() {
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState('');
   const [activeTab, setActiveTab] = useState<'chat' | 'history'>('chat');
+  const [displayError, setDisplayError] = useState<string | null>(null);
   const router = useRouter();
+  
+  // Track message count to detect failed responses
+  const prevMessageCountRef = useRef(0);
+  const wasLoadingRef = useRef(false);
 
   // Load messages BEFORE useChat initialization to prevent race condition
   const [initialMessages] = useState(() => {
@@ -28,7 +33,7 @@ export function ChatWidget() {
     return loadChatMessages();
   });
 
-  // Create chat transport with timeout
+  // Create chat transport with timeout and error handling
   const transport = new DefaultChatTransport({
     api: '/api/chat',
     fetch: async (url, options) => {
@@ -41,9 +46,19 @@ export function ChatWidget() {
           signal: controller.signal,
         });
         clearTimeout(timeoutId);
+        
+        // Check for error responses
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.error || `Request failed with status ${response.status}`);
+        }
+        
         return response;
       } catch (error) {
         clearTimeout(timeoutId);
+        if (error instanceof Error && error.name === 'AbortError') {
+          throw new Error('Request timed out. Please try again.');
+        }
         throw error;
       }
     },
@@ -53,21 +68,72 @@ export function ChatWidget() {
   const { messages, sendMessage, stop, setMessages, status, error } = useChat({
     transport,
     initialMessages, // KEY FIX: Initialize with messages from localStorage
+    onError: (err) => {
+      console.error('Chat error:', err);
+      setDisplayError(err.message || 'An error occurred. Please try again.');
+    },
   });
 
-  const isLoading = status === 'streaming';
+  const isLoading = status === 'streaming' || status === 'submitted';
 
   // Stable callback for operation completion (triggers calendar refresh)
   const handleOperationComplete = useCallback(() => {
     router.refresh();
   }, [router]);
 
-  // Add error handling callback
+  // Detect when streaming completes without a response (silent failures)
+  useEffect(() => {
+    // If we were loading and now we're not
+    if (wasLoadingRef.current && !isLoading) {
+      // Check if the latest assistant message has any content (text or tool results)
+      const assistantMessages = messages.filter(m => m.role === 'assistant');
+      const lastAssistantMsg = assistantMessages[assistantMessages.length - 1];
+      
+      // A response is valid if it has text OR tool results
+      const hasValidResponse = lastAssistantMsg && lastAssistantMsg.parts && lastAssistantMsg.parts.some(
+        (p: any) => (p.type === 'text' && p.text?.trim()) || p.type === 'tool-result'
+      );
+      
+      const userMessages = messages.filter(m => m.role === 'user').length;
+      
+      // If user sent a message but no valid assistant response came back
+      if (userMessages > assistantMessages.length && !hasValidResponse && !error) {
+        setDisplayError('No response received. The AI service may be temporarily unavailable. Please try again.');
+      }
+    }
+    
+    wasLoadingRef.current = isLoading;
+    prevMessageCountRef.current = messages.length;
+  }, [isLoading, messages, error]);
+
+  // Sync error state
   useEffect(() => {
     if (error) {
-      console.error('Chat error:', error);
+      setDisplayError(error.message || 'An error occurred. Please try again.');
     }
   }, [error]);
+
+  // Clear error when user sends a new message
+  const clearError = useCallback(() => {
+    setDisplayError(null);
+  }, []);
+
+  // Debug: Log message structure to understand part types
+  useEffect(() => {
+    if (messages.length > 0) {
+      const lastMessage = messages[messages.length - 1];
+      console.log('[ChatWidget] Last message:', JSON.stringify(lastMessage, null, 2));
+      if (lastMessage.parts && Array.isArray(lastMessage.parts)) {
+        console.log('[ChatWidget] Message parts types:', lastMessage.parts.map((p: any) => ({
+          type: p.type,
+          hasResult: 'result' in p,
+          hasToolCallId: 'toolCallId' in p,
+          hasToolName: 'toolName' in p,
+          keys: Object.keys(p),
+        })));
+      }
+    }
+  }, [messages]);
 
   // Save messages to localStorage when they change (after streaming completes)
   useEffect(() => {
@@ -80,6 +146,9 @@ export function ChatWidget() {
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
     if (!input.trim() || isLoading) return;
+
+    // Clear any previous errors
+    clearError();
 
     // Send message with text part
     sendMessage({
@@ -162,9 +231,19 @@ export function ChatWidget() {
           {activeTab === 'chat' ? (
             <>
               {/* Error display */}
-              {error && (
-                <div className="mx-4 mt-4 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">
-                  <strong>Error:</strong> {error.message}
+              {displayError && (
+                <div className="mx-4 mt-4 flex items-start gap-3 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+                  <AlertCircle className="h-5 w-5 flex-shrink-0 text-red-500" />
+                  <div className="flex-1">
+                    <p className="font-medium">Error</p>
+                    <p className="mt-0.5">{displayError}</p>
+                  </div>
+                  <button 
+                    onClick={clearError}
+                    className="flex-shrink-0 rounded p-1 hover:bg-red-100"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
                 </div>
               )}
 
