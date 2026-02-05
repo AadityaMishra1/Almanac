@@ -86,14 +86,14 @@ export async function POST(req: Request) {
       currentDate,
     });
 
-    // Create DeepSeek client
+    // Create DeepSeek client (OpenAI-compatible endpoint)
     const deepseek = createOpenAICompatible({
       name: 'deepseek',
       apiKey: process.env.DEEPSEEK_API_KEY,
       baseURL: 'https://api.deepseek.com/v1',
     });
 
-    // Stream text with tools
+    // Stream text with tools using DeepSeek Chat model
     const result = streamText({
       model: deepseek('deepseek-chat'),
       system: systemPrompt,
@@ -106,15 +106,37 @@ export async function POST(req: Request) {
         bulkDeleteTool,
       },
       toolChoice: 'auto',
+      // Add error handling for streaming errors
+      onError: (error) => {
+        console.error('Streaming error:', error);
+      },
     });
 
-    return result.toTextStreamResponse();
+    // Convert to UI message stream response (includes tool calls and results)
+    return result.toUIMessageStreamResponse({
+      headers: {
+        'X-Content-Type-Options': 'nosniff',
+      },
+    });
   } catch (error) {
     console.error('Chat API error:', error);
+    
+    // Extract meaningful error message
+    let errorMessage = 'An unexpected error occurred';
+    if (error instanceof Error) {
+      errorMessage = error.message;
+      // Check for common API errors
+      if (errorMessage.includes('401') || errorMessage.includes('Unauthorized')) {
+        errorMessage = 'API key is invalid. Please check your GROQ_API_KEY.';
+      } else if (errorMessage.includes('429') || errorMessage.includes('rate limit')) {
+        errorMessage = 'Rate limit exceeded. Please wait a moment and try again.';
+      } else if (errorMessage.includes('402') || errorMessage.includes('balance') || errorMessage.includes('Insufficient')) {
+        errorMessage = 'API account has insufficient credits. Please top up your account.';
+      }
+    }
+    
     return new Response(
-      JSON.stringify({
-        error: error instanceof Error ? error.message : 'An unexpected error occurred',
-      }),
+      JSON.stringify({ error: errorMessage }),
       {
         status: 500,
         headers: { 'Content-Type': 'application/json' },
