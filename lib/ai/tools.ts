@@ -352,7 +352,6 @@ export const queryEventsTool = tool<
       where.AND.push({
         title: {
           contains: query,
-          mode: 'insensitive',
         },
       });
     }
@@ -388,7 +387,6 @@ export const queryEventsTool = tool<
       where.AND.push({
         type: {
           equals: type,
-          mode: 'insensitive',
         },
       });
     }
@@ -448,7 +446,6 @@ export const bulkDeleteTool = tool<z.infer<typeof bulkDeleteSchema>, Confirmatio
       where.AND.push({
         type: {
           equals: type,
-          mode: 'insensitive',
         },
       });
     }

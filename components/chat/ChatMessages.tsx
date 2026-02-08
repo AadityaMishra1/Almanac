@@ -17,11 +17,6 @@ type ConfirmationState = 'pending' | 'approved' | 'rejected' | 'executing' | 'do
 
 export function ChatMessages({ messages, isLoading, onOperationComplete }: ChatMessagesProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  
-  // Debug: Log messages to console
-  useEffect(() => {
-    console.log('[ChatMessages] Messages received:', JSON.stringify(messages, null, 2));
-  }, [messages]);
 
   // Track confirmation state per tool call ID
   const [confirmationStates, setConfirmationStates] = useState<Map<string, ConfirmationState>>(
@@ -214,27 +209,27 @@ export function ChatMessages({ messages, isLoading, onOperationComplete }: ChatM
 
         // Assistant message
         if (message.role === 'assistant') {
-          // Debug: Log part types to understand structure
-          console.log('[ChatMessages] Assistant message parts:', message.parts?.map((p: any) => ({
-            type: p.type,
-            hasResult: 'result' in p,
-            hasToolCallId: 'toolCallId' in p,
-            resultType: typeof p.result,
-          })));
-
           // Extract text from parts
           const textParts = message.parts.filter((p) => p.type === 'text');
           const text = textParts.map((p: any) => p.text).join('');
 
-          // Extract tool result parts - check for 'tool-result' or any part with a result property
-          // The AI SDK might use different types: 'tool-result', 'tool-call' with result, etc.
+          // AI SDK v6 uses dynamic type names: 'tool-{toolName}' (e.g. 'tool-queryEventsTool')
+          // States: 'input-streaming' → 'input-available' → 'output-available' or 'output-error'
+          // Data is in 'output' property (not 'result')
           const toolResultParts = message.parts.filter((p: any) =>
-            p.type === 'tool-result' ||
-            (p.result !== undefined && p.toolCallId !== undefined) ||
-            (p.type === 'tool-call' && 'result' in p)
+            p.type?.startsWith('tool-') && p.state === 'output-available' && p.output
           );
-
-          console.log('[ChatMessages] Found', toolResultParts.length, 'tool result parts');
+          
+          // Loading tool parts (tool is executing)
+          const loadingToolParts = message.parts.filter((p: any) =>
+            p.type?.startsWith('tool-') && 
+            (p.state === 'input-streaming' || p.state === 'input-available')
+          );
+          
+          // Error tool parts (tool execution failed)
+          const errorToolParts = message.parts.filter((p: any) =>
+            p.type?.startsWith('tool-') && p.state === 'output-error'
+          );
 
           return (
             <div key={message.id} className="flex flex-col gap-2 items-start">
@@ -243,11 +238,43 @@ export function ChatMessages({ messages, isLoading, onOperationComplete }: ChatM
                   {text}
                 </div>
               )}
+              
+              {/* Loading indicators for in-progress tool calls */}
+              {loadingToolParts.map((toolPart: any) => (
+                <div
+                  key={toolPart.toolCallId || `loading-${Math.random()}`}
+                  className="flex items-center gap-2 rounded-lg bg-blue-50 border border-blue-200 px-4 py-2"
+                >
+                  <div className="animate-spin h-4 w-4 border-2 border-blue-600 border-t-transparent rounded-full" />
+                  <span className="text-sm text-blue-800">
+                    {toolPart.type?.replace('tool-', '').replace(/Tool$/, '') || 'Processing'}...
+                  </span>
+                </div>
+              ))}
+              
+              {/* Error indicators for failed tool calls */}
+              {errorToolParts.map((toolPart: any) => {
+                const errorMsg = toolPart.error?.message 
+                  || toolPart.error 
+                  || toolPart.output?.error 
+                  || 'Tool execution failed';
+                return (
+                  <div
+                    key={toolPart.toolCallId || `error-${Math.random()}`}
+                    className="flex items-center gap-2 rounded-lg bg-red-50 border border-red-200 px-4 py-2"
+                  >
+                    <XCircle className="h-4 w-4 text-red-600" />
+                    <span className="text-sm text-red-800">
+                      Error: {typeof errorMsg === 'string' ? errorMsg : JSON.stringify(errorMsg)}
+                    </span>
+                  </div>
+                );
+              })}
 
               {/* Render tool results */}
               {toolResultParts.map((toolPart: any) => {
                 const toolCallId = toolPart.toolCallId;
-                const result = toolPart.result;
+                const result = toolPart.output; // AI SDK v6 uses 'output' not 'result'
 
                 // Check confirmation state
                 const state = confirmationStates.get(toolCallId) || 'pending';

@@ -39,7 +39,10 @@
       "Bash(fi)",
       "Bash(done)",
       "Bash(npm uninstall:*)",
-      "WebFetch(domain:console.groq.com)"
+      "WebFetch(domain:console.groq.com)",
+      "Bash(pkill:*)",
+      "Bash(xargs cat:*)",
+      "Bash(tree:*)"
     ]
   }
 }
