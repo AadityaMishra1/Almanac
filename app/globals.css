@@ -7,3 +7,41 @@ body {
   height: 100%;
 }
 
+/* react-big-calendar Tailwind overrides */
+.rbc-calendar {
+  font-family: inherit;
+}
+
+.rbc-header {
+  padding: 8px 4px;
+  font-weight: 600;
+  font-size: 0.75rem;
+}
+
+.rbc-event {
+  padding: 2px 4px;
+}
+
+.rbc-show-more {
+  color: #3b82f6;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+/* Mobile: make day column headers shorter */
+@media (max-width: 767px) {
+  .rbc-header {
+    font-size: 0.65rem;
+    padding: 4px 2px;
+  }
+
+  .rbc-time-slot {
+    min-height: 30px;
+  }
+
+  .rbc-event {
+    font-size: 0.65rem;
+    padding: 1px 3px;
+  }
+}
+

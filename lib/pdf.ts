@@ -1,12 +1,6 @@
-export async function parseSyllabusPdfToText(buffer: Buffer) {
-  if (!buffer || buffer.length === 0) {
-    throw new Error("Received an empty file. Please upload a valid PDF.");
-  }
+/**
+ * Backward compatibility re-export
+ * Maintains existing imports while new modular structure is in lib/pdf/
+ */
 
-  const pdfParseModule = await import("pdf-parse/lib/pdf-parse");
-  const pdfParse = (pdfParseModule as any).default ?? pdfParseModule;
-
-  // Importing the internal parser avoids pdf-parse's debug test file loader in Next.js.
-  const data = await pdfParse(buffer);
-  return String(data.text ?? "").trim();
-}
+export { extractTextFromPdf as parseSyllabusPdfToText } from "./pdf/extract-text";

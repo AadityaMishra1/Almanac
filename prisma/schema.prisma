@@ -1,0 +1,73 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider   = "prisma-client-js"
+  engineType = "binary"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+enum EventSource {
+  ALMANAC
+  GOOGLE_CALENDAR
+}
+
+model Course {
+  id       String  @id @default(uuid())
+  code     String  @unique // e.g., "CSC 316"
+  name     String // e.g., "Data Structures"
+  color    String? // hex color for calendar UI (e.g., "#3b82f6")
+  semester String // e.g., "Spring 2026"
+
+  events Event[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("courses")
+}
+
+model Event {
+  id          String  @id @default(uuid())
+  title       String
+  date        String // ISO 8601 date (YYYY-MM-DD)
+  time        String? // ISO 8601 time (HH:MM) or null for all-day
+  type        String // e.g., "exam", "assignment", "quiz", "reading"
+  description String?
+
+  // Source authority and permissions
+  source        EventSource @default(ALMANAC)
+  googleEventId String?     @unique // Maps to Google Calendar event ID for sync
+  editable      Boolean     @default(true) // Computed: true for ALMANAC, false for GOOGLE_CALENDAR
+
+  // Relationships
+  courseId String
+  course   Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  // Audit fields
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([courseId])
+  @@index([date])
+  @@index([source])
+  @@map("events")
+}
+
+model ChatCommand {
+  id          String   @id @default(uuid())
+  type        String   // 'modify' | 'delete' | 'create'
+  description String   // Human-readable: "Moved CSC 316 Midterm to March 15"
+  eventId     String   // The event that was affected
+  beforeState String?  // JSON serialized EventSnapshot (null for create)
+  afterState  String?  // JSON serialized EventSnapshot (null for delete)
+  undone      Boolean  @default(false)
+
+  createdAt   DateTime @default(now())
+
+  @@index([createdAt])
+  @@map("chat_commands")
+}

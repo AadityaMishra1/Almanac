@@ -30,3 +30,9 @@ Thumbs.db
 
 # Misc
 .turbo/
+
+# Prisma
+*.db
+*.db-journal
+
+/generated/prisma
