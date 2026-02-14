@@ -1,22 +1,59 @@
 'use client';
 
-import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, isToday, addMonths, subMonths, startOfWeek, endOfWeek, addDays, parseISO, addWeeks, subWeeks, startOfDay, endOfDay, getHours, getMinutes } from 'date-fns';
-import { X, Calendar as CalendarIcon } from 'lucide-react';
-import api from '@/frontend/lib/api';
+import { useState, useEffect, useMemo, useCallback } from 'react';
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, isToday, addMonths, subMonths, startOfWeek, endOfWeek, getDay, addDays, parseISO, addWeeks, subWeeks, startOfDay, endOfDay, getHours, getMinutes } from 'date-fns';
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock, BookOpen, FileText, GraduationCap, TestTube, Briefcase, MapPin, CheckCircle2, Grid3x3, Columns, Square, X } from 'lucide-react';
+import api from '@/lib/api';
 
-// Import new components
-import type { View, UnifiedEvent } from '@/frontend/components/calendar/types';
-import { getEventColor, getEventIcon } from '@/frontend/components/calendar/utils';
-import { CalendarHeader } from '@/frontend/components/calendar/CalendarHeader';
-import { EventCard } from '@/frontend/components/calendar/EventCard';
-import { CurrentTimeIndicator } from '@/frontend/components/calendar/CurrentTimeIndicator';
-import { AgendaView } from '@/frontend/components/calendar/AgendaView';
-import { EventDetailModal } from '@/frontend/components/calendar/EventDetailModal';
-import { CalendarSkeleton } from '@/frontend/components/calendar/CalendarSkeleton';
+type View = 'month' | 'week' | 'day';
+
+interface UnifiedEvent {
+  id: string;
+  type: 'assignment' | 'calendar_event';
+  title: string;
+  description?: string;
+  start_time: string;
+  end_time: string;
+  course_name?: string;
+  course_code?: string;
+  assignment_type?: string;
+  is_synced_to_calendar?: boolean;
+  google_event_id?: string;
+  location?: string;
+  source: 'database' | 'google_calendar';
+}
 
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
+
+// Color palette inspired by Notion - soft, muted, elegant
+const getEventColor = (event: UnifiedEvent): { bg: string; border: string; text: string } => {
+  if (event.type === 'assignment') {
+    const type = event.assignment_type?.toLowerCase() || 'homework';
+    const colors: Record<string, { bg: string; border: string; text: string }> = {
+      homework: { bg: 'bg-blue-50 dark:bg-blue-950/30', border: 'border-blue-300 dark:border-blue-700', text: 'text-blue-700 dark:text-blue-300' },
+      exam: { bg: 'bg-red-50 dark:bg-red-950/30', border: 'border-red-300 dark:border-red-700', text: 'text-red-700 dark:text-red-300' },
+      project: { bg: 'bg-purple-50 dark:bg-purple-950/30', border: 'border-purple-300 dark:border-purple-700', text: 'text-purple-700 dark:text-purple-300' },
+      quiz: { bg: 'bg-yellow-50 dark:bg-yellow-950/30', border: 'border-yellow-300 dark:border-yellow-700', text: 'text-yellow-700 dark:text-yellow-300' },
+      presentation: { bg: 'bg-green-50 dark:bg-green-950/30', border: 'border-green-300 dark:border-green-700', text: 'text-green-700 dark:text-green-300' },
+      other: { bg: 'bg-gray-50 dark:bg-gray-800/50', border: 'border-gray-300 dark:border-gray-700', text: 'text-gray-700 dark:text-gray-300' },
+    };
+    return colors[type] || colors.other;
+  } else {
+    return { bg: 'bg-indigo-50 dark:bg-indigo-950/30', border: 'border-indigo-300 dark:border-indigo-700', text: 'text-indigo-700 dark:text-indigo-300' };
+  }
+};
+
+const getEventIcon = (event: UnifiedEvent) => {
+  if (event.type === 'assignment') {
+    const type = event.assignment_type?.toLowerCase() || 'homework';
+    if (type === 'exam') return TestTube;
+    if (type === 'project') return Briefcase;
+    if (type === 'quiz') return FileText;
+    return BookOpen;
+  }
+  return CalendarIcon;
+};
 
 export default function ModernCalendar() {
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -25,76 +62,6 @@ export default function ModernCalendar() {
   const [loading, setLoading] = useState(true);
   const [selectedEvent, setSelectedEvent] = useState<UnifiedEvent | null>(null);
   const [expandedDate, setExpandedDate] = useState<Date | null>(null);
-  const [isMobile, setIsMobile] = useState(false);
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
-
-  // Detect mobile screen size
-  useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 640);
-    };
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
-
-  // Keyboard shortcuts
-  useEffect(() => {
-    const handleKeyPress = (e: KeyboardEvent) => {
-      // Don't trigger if modal is open or typing in input
-      if (selectedEvent || expandedDate || e.target instanceof HTMLInputElement) return;
-
-      switch (e.key) {
-        case 'ArrowLeft':
-          navigate('prev');
-          break;
-        case 'ArrowRight':
-          navigate('next');
-          break;
-        case 't':
-        case 'T':
-          goToToday();
-          break;
-        case 'm':
-        case 'M':
-          setView('month');
-          break;
-        case 'w':
-        case 'W':
-          setView('week');
-          break;
-        case 'd':
-        case 'D':
-          setView('day');
-          break;
-        case 'Escape':
-          setExpandedDate(null);
-          setSelectedEvent(null);
-          break;
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyPress);
-    return () => window.removeEventListener('keydown', handleKeyPress);
-  }, [selectedEvent, expandedDate]);
-
-  // Auto-scroll to current time in week/day views
-  useEffect(() => {
-    if ((view === 'week' || view === 'day') && scrollContainerRef.current) {
-      const now = new Date();
-      const hours = getHours(now);
-      // Scroll to current hour, or 8am if outside work hours
-      const targetHour = hours > 18 || hours < 6 ? 8 : hours;
-      const scrollPosition = targetHour * 64 - 100;
-
-      setTimeout(() => {
-        scrollContainerRef.current?.scrollTo({
-          top: Math.max(0, scrollPosition),
-          behavior: 'smooth',
-        });
-      }, 100);
-    }
-  }, [view, currentDate]);
 
   const loadEvents = useCallback(async () => {
     setLoading(true);
@@ -110,18 +77,19 @@ export default function ModernCalendar() {
         timeMin = weekStart;
         timeMax = endOfWeek(currentDate, { weekStartsOn: 0 });
       } else {
+        // day view
         timeMin = startOfDay(currentDate);
         timeMax = endOfDay(currentDate);
       }
-
-      const response = await api.get('/calendar/events', {
+      
+      const response = await api.get('/calendar/unified-events', {
         params: {
-          start: format(timeMin, 'yyyy-MM-dd'),
-          end: format(timeMax, 'yyyy-MM-dd'),
+          time_min: timeMin.toISOString(),
+          time_max: timeMax.toISOString(),
         },
       });
 
-      setEvents(response.data || []);
+      setEvents(response.data.events || []);
     } catch (error) {
       console.error('Failed to load events:', error);
       setEvents([]);
@@ -137,11 +105,11 @@ export default function ModernCalendar() {
   // Group events by date
   const eventsByDate = useMemo(() => {
     const grouped: Map<string, UnifiedEvent[]> = new Map();
-
+    
     events.forEach(event => {
       const eventDate = parseISO(event.start_time);
       const dateKey = format(eventDate, 'yyyy-MM-dd');
-
+      
       if (!grouped.has(dateKey)) {
         grouped.set(dateKey, []);
       }
@@ -166,7 +134,7 @@ export default function ModernCalendar() {
     const monthEnd = endOfMonth(currentDate);
     const calendarStart = startOfWeek(monthStart, { weekStartsOn: 0 });
     const calendarEnd = endOfWeek(monthEnd, { weekStartsOn: 0 });
-
+    
     return eachDayOfInterval({ start: calendarStart, end: calendarEnd });
   }, [currentDate]);
 
@@ -204,7 +172,8 @@ export default function ModernCalendar() {
     }
   };
 
-  const handleEventClick = (event: UnifiedEvent) => {
+  const handleEventClick = (event: UnifiedEvent, e: React.MouseEvent) => {
+    e.stopPropagation();
     setSelectedEvent(event);
   };
 
@@ -214,41 +183,6 @@ export default function ModernCalendar() {
       return getHours(eventTime) === hour;
     });
   };
-
-  // Mobile agenda view
-  if (isMobile) {
-    return (
-      <div className="w-full">
-        <CalendarHeader
-          currentDate={currentDate}
-          view={view}
-          weekDays={weekDays}
-          onNavigate={navigate}
-          onViewChange={setView}
-          onToday={goToToday}
-        />
-
-        {loading ? (
-          <div className="flex items-center justify-center p-12">
-            <div className="text-gray-600 dark:text-gray-400">Loading calendar...</div>
-          </div>
-        ) : (
-          <AgendaView
-            currentDate={currentDate}
-            events={eventsByDate}
-            onEventClick={handleEventClick}
-          />
-        )}
-
-        {selectedEvent && (
-          <EventDetailModal
-            event={selectedEvent}
-            onClose={() => setSelectedEvent(null)}
-          />
-        )}
-      </div>
-    );
-  }
 
   const renderMonthView = () => (
     <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 overflow-hidden shadow-sm">
@@ -265,7 +199,7 @@ export default function ModernCalendar() {
       </div>
 
       {/* Calendar Days */}
-      <div className="grid grid-cols-1 sm:grid-cols-7">
+      <div className="grid grid-cols-7">
         {monthDays.map((day) => {
           const isCurrentMonth = isSameMonth(day, currentDate);
           const isTodayDate = isToday(day);
@@ -290,7 +224,7 @@ export default function ModernCalendar() {
                   onClick={() => handleDateClick(day)}
                   className={`
                     inline-flex items-center justify-center w-7 h-7 rounded-full text-sm font-medium
-                    transition-all min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0
+                    transition-all
                     ${isTodayDate
                       ? 'bg-blue-600 dark:bg-blue-500 text-white shadow-sm'
                       : isCurrentMonth
@@ -298,29 +232,43 @@ export default function ModernCalendar() {
                       : 'text-gray-400 dark:text-gray-600'
                     }
                   `}
-                  aria-label={`Select date: ${format(day, 'MMMM d, yyyy')}`}
                 >
                   {format(day, 'd')}
                 </button>
               </div>
 
               {/* Events */}
-              <div className="px-2 pb-2 space-y-1.5 max-h-[80px] overflow-y-auto">
-                {dayEvents.slice(0, isExpanded ? 10 : 4).map((event) => (
-                  <EventCard
-                    key={event.id}
-                    event={event}
-                    view="month"
-                    onClick={handleEventClick}
-                  />
-                ))}
+              <div className="px-2 pb-2 space-y-1 max-h-[80px] overflow-y-auto">
+                {dayEvents.slice(0, isExpanded ? 10 : 4).map((event) => {
+                  const colors = getEventColor(event);
+                  const Icon = getEventIcon(event);
+                  
+                  return (
+                    <div
+                      key={event.id}
+                      onClick={(e) => handleEventClick(event, e)}
+                      className={`
+                        ${colors.bg} ${colors.border} ${colors.text}
+                        border-l-2 rounded-r px-2 py-1 text-xs
+                        hover:shadow-md transition-all cursor-pointer
+                        flex items-center gap-1.5 group/event
+                      `}
+                    >
+                      <Icon className="w-3 h-3 flex-shrink-0" />
+                      <span className="truncate flex-1 font-medium">{event.title}</span>
+                      {event.is_synced_to_calendar && (
+                        <CheckCircle2 className="w-3 h-3 flex-shrink-0 opacity-60" />
+                      )}
+                    </div>
+                  );
+                })}
                 {!isExpanded && dayEvents.length > 4 && (
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
                       handleDateClick(day);
                     }}
-                    className="text-xs text-gray-500 dark:text-gray-400 px-2 py-1 font-medium hover:text-gray-700 dark:hover:text-gray-300 transition-colors cursor-pointer w-full text-left min-h-[44px] flex items-center"
+                    className="text-xs text-gray-500 dark:text-gray-400 px-2 py-1 font-medium hover:text-gray-700 dark:hover:text-gray-300 transition-colors cursor-pointer w-full text-left"
                   >
                     +{dayEvents.length - 4} more
                   </button>
@@ -342,7 +290,7 @@ export default function ModernCalendar() {
           const isTodayDate = isToday(day);
           const dayEvents = getEventsForDate(day);
           const isExpanded = expandedDate && isSameDay(day, expandedDate);
-
+          
           return (
             <div
               key={day.toISOString()}
@@ -365,7 +313,6 @@ export default function ModernCalendar() {
                     : 'text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800'
                   }
                 `}
-                aria-label={`Select date: ${format(day, 'MMMM d, yyyy')}`}
               >
                 {format(day, 'd')}
               </button>
@@ -378,7 +325,7 @@ export default function ModernCalendar() {
       </div>
 
       {/* Time Grid */}
-      <div ref={scrollContainerRef} className="grid grid-cols-8 max-h-[600px] overflow-y-auto calendar-scroll">
+      <div className="grid grid-cols-8 max-h-[600px] overflow-y-auto">
         {/* Time Column */}
         <div className="border-r border-gray-200 dark:border-gray-800">
           {HOURS.map((hour) => (
@@ -395,7 +342,7 @@ export default function ModernCalendar() {
         {weekDays.map((day) => {
           const dayEvents = getEventsForDate(day);
           const isExpanded = expandedDate && isSameDay(day, expandedDate);
-
+          
           return (
             <div
               key={day.toISOString()}
@@ -406,7 +353,7 @@ export default function ModernCalendar() {
             >
               {HOURS.map((hour) => {
                 const hourEvents = getEventsForHour(day, hour);
-
+                
                 return (
                   <div
                     key={hour}
@@ -419,48 +366,33 @@ export default function ModernCalendar() {
                       const eventEnd = parseISO(event.end_time);
                       const startMinutes = getMinutes(eventStart);
                       const duration = (eventEnd.getTime() - eventStart.getTime()) / (1000 * 60);
-                      const topOffset = (startMinutes / 60) * 64;
+                      const topOffset = (startMinutes / 60) * 64; // 64px per hour
                       const height = Math.max((duration / 60) * 64, 20);
-
+                      
                       return (
                         <div
                           key={event.id}
-                          onClick={() => handleEventClick(event)}
-                          role="button"
-                          tabIndex={0}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter' || e.key === ' ') {
-                              e.preventDefault();
-                              handleEventClick(event);
-                            }
-                          }}
+                          onClick={(e) => handleEventClick(event, e)}
                           className={`
-                            ${colors.bg} ${colors.border} ${colors.text} ${colors.hover}
-                            border-l-[3px] rounded-md px-2 py-1.5 text-xs absolute left-1 right-1
-                            shadow-sm hover:shadow-lg transition-all duration-200 cursor-pointer
-                            flex items-center gap-1.5 backdrop-blur-sm
-                            group/event
+                            ${colors.bg} ${colors.border} ${colors.text}
+                            border-l-2 rounded-r px-2 py-1 text-xs absolute left-1 right-1
+                            hover:shadow-md transition-all cursor-pointer
+                            flex items-center gap-1
                           `}
                           style={{
                             top: `${topOffset}px`,
                             height: `${height}px`,
                             zIndex: 10,
                           }}
-                          aria-label={`${event.title} at ${format(eventStart, 'h:mm a')}`}
                         >
-                          <Icon className="w-3 h-3 flex-shrink-0 opacity-90" aria-hidden="true" />
-                          <span className="truncate flex-1 font-semibold text-[10px] tracking-tight">{event.title}</span>
+                          <Icon className="w-3 h-3 flex-shrink-0" />
+                          <span className="truncate flex-1 font-medium text-[10px]">{event.title}</span>
                         </div>
                       );
                     })}
                   </div>
                 );
               })}
-
-              {/* Current Time Indicator */}
-              {isSameDay(day, new Date()) && (
-                <CurrentTimeIndicator hourHeight={64} />
-              )}
             </div>
           );
         })}
@@ -470,7 +402,8 @@ export default function ModernCalendar() {
 
   const renderDayView = () => {
     const dayEvents = getEventsForDate(currentDate);
-
+    const isExpanded = expandedDate && isSameDay(currentDate, expandedDate);
+    
     return (
       <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 overflow-hidden shadow-sm">
         {/* Day Header */}
@@ -491,7 +424,7 @@ export default function ModernCalendar() {
         </div>
 
         {/* Time Grid */}
-        <div ref={scrollContainerRef} className="grid grid-cols-12 max-h-[600px] overflow-y-auto calendar-scroll">
+        <div className="grid grid-cols-12 max-h-[600px] overflow-y-auto">
           {/* Time Column */}
           <div className="col-span-2 border-r border-gray-200 dark:border-gray-800">
             {HOURS.map((hour) => (
@@ -508,7 +441,7 @@ export default function ModernCalendar() {
           <div className="col-span-10 relative">
             {HOURS.map((hour) => {
               const hourEvents = getEventsForHour(currentDate, hour);
-
+              
               return (
                 <div
                   key={hour}
@@ -523,41 +456,31 @@ export default function ModernCalendar() {
                     const duration = (eventEnd.getTime() - eventStart.getTime()) / (1000 * 60);
                     const topOffset = (startMinutes / 60) * 64;
                     const height = Math.max((duration / 60) * 64, 40);
-
+                    
                     return (
                       <div
                         key={event.id}
-                        onClick={() => handleEventClick(event)}
-                        role="button"
-                        tabIndex={0}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter' || e.key === ' ') {
-                            e.preventDefault();
-                            handleEventClick(event);
-                          }
-                        }}
+                        onClick={(e) => handleEventClick(event, e)}
                         className={`
-                          ${colors.bg} ${colors.border} ${colors.text} ${colors.hover}
-                          border-l-[4px] rounded-lg px-3 py-2.5 absolute left-2 right-2
-                          shadow-md hover:shadow-xl transition-all duration-200 cursor-pointer
-                          flex items-start gap-2.5 backdrop-blur-sm
-                          group/event
+                          ${colors.bg} ${colors.border} ${colors.text}
+                          border-l-2 rounded-r px-3 py-2 absolute left-2 right-2
+                          hover:shadow-md transition-all cursor-pointer
+                          flex items-start gap-2
                         `}
                         style={{
                           top: `${topOffset}px`,
                           height: `${height}px`,
                           zIndex: 10,
                         }}
-                        aria-label={`${event.title} from ${format(eventStart, 'h:mm a')} to ${format(eventEnd, 'h:mm a')}`}
                       >
-                        <Icon className="w-4 h-4 flex-shrink-0 mt-0.5 opacity-90 group-hover/event:scale-110 transition-transform" aria-hidden="true" />
+                        <Icon className="w-4 h-4 flex-shrink-0 mt-0.5" />
                         <div className="flex-1 min-w-0">
-                          <div className="font-bold text-sm mb-1.5 tracking-tight">{event.title}</div>
-                          <div className="text-xs opacity-80 font-medium">
+                          <div className="font-semibold text-sm mb-1">{event.title}</div>
+                          <div className="text-xs opacity-75">
                             {format(eventStart, 'h:mm a')} - {format(eventEnd, 'h:mm a')}
                           </div>
                           {event.course_name && (
-                            <div className="text-xs opacity-70 mt-1.5 font-medium">
+                            <div className="text-xs opacity-60 mt-1">
                               {event.course_name}
                             </div>
                           )}
@@ -568,11 +491,6 @@ export default function ModernCalendar() {
                 </div>
               );
             })}
-
-            {/* Current Time Indicator */}
-            {isSameDay(currentDate, new Date()) && (
-              <CurrentTimeIndicator hourHeight={64} />
-            )}
           </div>
         </div>
       </div>
@@ -581,18 +499,94 @@ export default function ModernCalendar() {
 
   return (
     <div className="w-full">
-      <CalendarHeader
-        currentDate={currentDate}
-        view={view}
-        weekDays={weekDays}
-        onNavigate={navigate}
-        onViewChange={setView}
-        onToday={goToToday}
-      />
+      {/* Calendar Header */}
+      <div className="mb-8 flex items-center justify-between flex-wrap gap-4">
+        <div className="flex items-center gap-4">
+          <button
+            onClick={() => navigate('prev')}
+            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+            aria-label="Previous"
+          >
+            <ChevronLeft className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+          </button>
+          <button
+            onClick={() => navigate('next')}
+            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+            aria-label="Next"
+          >
+            <ChevronRight className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+          </button>
+          <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">
+            {view === 'month' && format(currentDate, 'MMMM yyyy')}
+            {view === 'week' && `Week of ${format(weekDays[0], 'MMM d')}`}
+            {view === 'day' && format(currentDate, 'EEEE, MMMM d, yyyy')}
+          </h2>
+        </div>
+        
+        <div className="flex items-center gap-2">
+          {/* View Switcher */}
+          <div className="flex items-center bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-1">
+            <button
+              onClick={() => setView('month')}
+              className={`
+                px-4 py-2 text-sm font-medium rounded-md transition-all
+                ${view === 'month'
+                  ? 'bg-blue-600 dark:bg-blue-500 text-white shadow-sm'
+                  : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+                }
+              `}
+            >
+              <div className="flex items-center gap-2">
+                <Grid3x3 className="w-4 h-4" />
+                <span>Month</span>
+              </div>
+            </button>
+            <button
+              onClick={() => setView('week')}
+              className={`
+                px-4 py-2 text-sm font-medium rounded-md transition-all
+                ${view === 'week'
+                  ? 'bg-blue-600 dark:bg-blue-500 text-white shadow-sm'
+                  : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+                }
+              `}
+            >
+              <div className="flex items-center gap-2">
+                <Columns className="w-4 h-4" />
+                <span>Week</span>
+              </div>
+            </button>
+            <button
+              onClick={() => setView('day')}
+              className={`
+                px-4 py-2 text-sm font-medium rounded-md transition-all
+                ${view === 'day'
+                  ? 'bg-blue-600 dark:bg-blue-500 text-white shadow-sm'
+                  : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+                }
+              `}
+            >
+              <div className="flex items-center gap-2">
+                <Square className="w-4 h-4" />
+                <span>Day</span>
+              </div>
+            </button>
+          </div>
+          
+          <button
+            onClick={goToToday}
+            className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+          >
+            Today
+          </button>
+        </div>
+      </div>
 
       {/* Calendar View */}
       {loading ? (
-        <CalendarSkeleton />
+        <div className="flex items-center justify-center p-12">
+          <div className="text-gray-600 dark:text-gray-400">Loading calendar...</div>
+        </div>
       ) : (
         <>
           {view === 'month' && renderMonthView()}
@@ -602,7 +596,7 @@ export default function ModernCalendar() {
       )}
 
       {/* Expanded Date Panel */}
-      {expandedDate && !isMobile && (
+      {expandedDate && (
         <div className="mt-6 bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-6 shadow-sm animate-slide-in-bottom">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
@@ -610,10 +604,9 @@ export default function ModernCalendar() {
             </h3>
             <button
               onClick={() => setExpandedDate(null)}
-              className="p-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
-              aria-label="Close expanded date panel"
+              className="p-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
             >
-              <X className="w-4 h-4 text-gray-400" aria-hidden="true" />
+              <X className="w-4 h-4 text-gray-400" />
             </button>
           </div>
           {getEventsForDate(expandedDate).length > 0 ? (
@@ -625,32 +618,21 @@ export default function ModernCalendar() {
                   <div
                     key={event.id}
                     onClick={() => setSelectedEvent(event)}
-                    role="button"
-                    tabIndex={0}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault();
-                        setSelectedEvent(event);
-                      }
-                    }}
                     className={`
-                      ${colors.bg} ${colors.border} ${colors.text} ${colors.hover}
-                      border-l-[4px] rounded-xl p-4 cursor-pointer shadow-sm hover:shadow-lg
-                      transition-all duration-200 backdrop-blur-sm
-                      group/event
+                      ${colors.bg} ${colors.border} ${colors.text}
+                      border-l-2 rounded-lg p-4 cursor-pointer hover:shadow-md transition-all
                     `}
-                    aria-label={`${event.title} at ${format(parseISO(event.start_time), 'h:mm a')}`}
                   >
                     <div className="flex items-start gap-3">
-                      <Icon className={`w-5 h-5 ${colors.text} mt-0.5 flex-shrink-0 opacity-90 group-hover/event:scale-110 transition-transform`} aria-hidden="true" />
+                      <Icon className={`w-5 h-5 ${colors.text} mt-0.5 flex-shrink-0`} />
                       <div className="flex-1 min-w-0">
-                        <div className="font-bold mb-1.5 tracking-tight">{event.title}</div>
+                        <div className="font-semibold mb-1">{event.title}</div>
                         {event.course_name && (
-                          <div className="text-sm opacity-80 mb-1.5 font-medium">
+                          <div className="text-sm opacity-75 mb-1">
                             {event.course_name} {event.course_code && `(${event.course_code})`}
                           </div>
                         )}
-                        <div className="text-xs opacity-70 font-medium">
+                        <div className="text-xs opacity-60">
                           {format(parseISO(event.start_time), 'h:mm a')} - {format(parseISO(event.end_time), 'h:mm a')}
                         </div>
                       </div>
@@ -661,7 +643,7 @@ export default function ModernCalendar() {
             </div>
           ) : (
             <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-              <CalendarIcon className="w-12 h-12 mx-auto mb-3 opacity-50" aria-hidden="true" />
+              <CalendarIcon className="w-12 h-12 mx-auto mb-3 opacity-50" />
               <p>No events scheduled for this day</p>
             </div>
           )}
@@ -670,10 +652,110 @@ export default function ModernCalendar() {
 
       {/* Event Detail Modal */}
       {selectedEvent && (
-        <EventDetailModal
-          event={selectedEvent}
-          onClose={() => setSelectedEvent(null)}
-        />
+        <div
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50"
+          onClick={() => setSelectedEvent(null)}
+        >
+          <div
+            className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden transform transition-all animate-fade-in"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Color accent bar */}
+            {(() => {
+              const colors = getEventColor(selectedEvent);
+              const borderColor = colors.border.includes('blue') ? '#3b82f6' :
+                                 colors.border.includes('red') ? '#ef4444' :
+                                 colors.border.includes('purple') ? '#a855f7' :
+                                 colors.border.includes('yellow') ? '#eab308' :
+                                 colors.border.includes('green') ? '#22c55e' :
+                                 '#6b7280';
+              return <div className="h-1" style={{ backgroundColor: borderColor }} />;
+            })()}
+
+            <div className="p-6">
+              <div className="flex items-start justify-between mb-4">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-3">
+                    {(() => {
+                      const colors = getEventColor(selectedEvent);
+                      const Icon = getEventIcon(selectedEvent);
+                      return (
+                        <div className={`${colors.bg} ${colors.border} border-l-2 rounded px-3 py-1.5 flex items-center gap-2`}>
+                          <Icon className={`w-4 h-4 ${colors.text}`} />
+                          <span className={`text-xs font-semibold ${colors.text} uppercase`}>
+                            {selectedEvent.assignment_type || 'Event'}
+                          </span>
+                        </div>
+                      );
+                    })()}
+                    {selectedEvent.is_synced_to_calendar && (
+                      <div className="flex items-center gap-1.5 px-2 py-1 bg-green-50 dark:bg-green-900/20 rounded border border-green-200 dark:border-green-800">
+                        <CheckCircle2 className="w-3 h-3 text-green-600 dark:text-green-400" />
+                        <span className="text-xs font-medium text-green-700 dark:text-green-400">Synced</span>
+                      </div>
+                    )}
+                  </div>
+                  <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+                    {selectedEvent.title}
+                  </h3>
+                  {selectedEvent.course_name && (
+                    <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                      <GraduationCap className="w-4 h-4" />
+                      <span className="font-medium">{selectedEvent.course_name}</span>
+                      {selectedEvent.course_code && (
+                        <span className="text-gray-400 dark:text-gray-500">({selectedEvent.course_code})</span>
+                      )}
+                    </div>
+                  )}
+                </div>
+                <button
+                  onClick={() => setSelectedEvent(null)}
+                  className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors flex-shrink-0"
+                >
+                  <X className="w-5 h-5 text-gray-400" />
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                {selectedEvent.description && (
+                  <div className="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-4">
+                    <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
+                      {selectedEvent.description}
+                    </p>
+                  </div>
+                )}
+
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3 text-sm">
+                    <div className="p-2 bg-blue-50 dark:bg-blue-950/30 rounded-lg">
+                      <Clock className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                    </div>
+                    <div>
+                      <div className="font-medium text-gray-900 dark:text-white">
+                        {format(parseISO(selectedEvent.start_time), 'EEEE, MMMM d, yyyy')}
+                      </div>
+                      <div className="text-gray-600 dark:text-gray-400">
+                        {format(parseISO(selectedEvent.start_time), 'h:mm a')} - {format(parseISO(selectedEvent.end_time), 'h:mm a')}
+                      </div>
+                    </div>
+                  </div>
+
+                  {selectedEvent.location && (
+                    <div className="flex items-center gap-3 text-sm">
+                      <div className="p-2 bg-purple-50 dark:bg-purple-950/30 rounded-lg">
+                        <MapPin className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                      </div>
+                      <div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-0.5">Location</div>
+                        <div className="font-medium text-gray-900 dark:text-white">{selectedEvent.location}</div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

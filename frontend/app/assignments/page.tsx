@@ -1,6 +1,6 @@
 'use client';
 
-import AssignmentList from '@/components/AssignmentList';
+import AssignmentList from '@/frontend/components/AssignmentList';
 import Link from 'next/link';
 import { ArrowLeft, ClipboardList, Sparkles } from 'lucide-react';
 

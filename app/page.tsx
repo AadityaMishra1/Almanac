@@ -1,18 +1,35 @@
-import { AuthButton } from "@/components/auth-button";
 import { SyllabusToCalendar } from "@/components/syllabus-to-calendar";
 
 export default function Page() {
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-5xl flex-col gap-8 p-6">
-      <header className="flex items-center justify-between">
-        <div className="space-y-1">
-          <h1 className="text-2xl font-semibold tracking-tight">Syllabus → Google Calendar</h1>
-          <p className="text-sm text-zinc-600">
-            Upload a PDF syllabus, review extracted due dates, then sync to your calendar.
-          </p>
+    <main className="mx-auto flex w-full max-w-2xl flex-col px-6 pt-20 sm:pt-28 pb-12">
+      <div className="mb-10">
+        <h1 className="text-3xl sm:text-4xl tracking-tight mb-3 opacity-0 animate-fade-in [animation-fill-mode:forwards]">
+          Syllabus → Calendar
+        </h1>
+
+        <p
+          className="text-base sm:text-lg text-[var(--text-secondary)] mb-4 max-w-md opacity-0 animate-fade-in-up [animation-fill-mode:forwards]"
+          style={{ animationDelay: '100ms' }}
+        >
+          Drop your syllabus, we'll handle the rest.
+        </p>
+
+        <div
+          className="flex flex-wrap gap-2 opacity-0 animate-fade-in-up [animation-fill-mode:forwards]"
+          style={{ animationDelay: '200ms' }}
+        >
+          <span className="text-xs text-[var(--text-tertiary)] bg-surface-secondary rounded-full px-3 py-1">
+            AI-powered extraction
+          </span>
+          <span className="text-xs text-[var(--text-tertiary)] bg-surface-secondary rounded-full px-3 py-1">
+            Review before syncing
+          </span>
+          <span className="text-xs text-[var(--text-tertiary)] bg-surface-secondary rounded-full px-3 py-1">
+            One-click Google Calendar sync
+          </span>
         </div>
-        <AuthButton />
-      </header>
+      </div>
 
       <SyllabusToCalendar />
     </main>

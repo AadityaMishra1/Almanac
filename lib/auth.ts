@@ -63,16 +63,19 @@ export const authOptions: NextAuthOptions = {
         token.accessToken = account.access_token;
         token.refreshToken = account.refresh_token;
         token.expiresAt = account.expires_at ? account.expires_at * 1000 : undefined;
-        token.userId = user.id;
+        // DO NOT use user.id from OAuth - it's not our DB ID
       }
 
-      // Fetch userId from database if not in token
-      if (!token.userId && token.email) {
+      // Always fetch userId from database using email
+      // This ensures we use our database ID, not the OAuth provider's ID
+      if (token.email) {
         const dbUser = await prisma.user.findUnique({
           where: { email: token.email },
           select: { id: true }
         });
-        if (dbUser) token.userId = dbUser.id;
+        if (dbUser) {
+          token.userId = dbUser.id;
+        }
       }
 
       // Token still valid
@@ -113,9 +116,14 @@ export const authOptions: NextAuthOptions = {
       return token;
     },
     async session({ session, token }) {
-      // Add userId to session
-      if (session.user) {
+      // Add userId to session - but only if we successfully got it from DB
+      if (session.user && token.userId) {
         session.user.id = token.userId as string;
+      } else if (session.user && !token.userId) {
+        // Critical: userId not found in database
+        // This should not happen if signIn callback succeeded
+        console.error("Session error: userId not found for email:", token.email);
+        // Don't set id - this will cause auth checks to fail gracefully
       }
 
       // Add accessToken and error

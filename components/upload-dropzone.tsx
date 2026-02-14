@@ -1,8 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { FileUp, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function UploadDropzone({
@@ -49,41 +48,65 @@ export function UploadDropzone({
     e.target.value = "";
   }
 
+  function handleKeyDown(e: React.KeyboardEvent) {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      pick();
+    }
+  }
+
   return (
-    <Card
-      className={cn(
-        "border-dashed",
-        isDragging ? "border-black bg-zinc-50" : "border-zinc-200",
-        isBusy ? "opacity-70" : ""
-      )}
+    <div
+      role="button"
+      tabIndex={isBusy ? -1 : 0}
+      onClick={isBusy ? undefined : pick}
+      onKeyDown={isBusy ? undefined : handleKeyDown}
       onDragOver={onDragOver}
       onDragLeave={onDragLeave}
       onDrop={onDrop}
+      className={cn(
+        "flex flex-col items-center justify-center text-center rounded-2xl border-2 border-dashed p-10 sm:p-14 transition-all duration-200",
+        "bg-surface-secondary border-[var(--border)]",
+        !isBusy && "cursor-pointer hover:border-brand-400 hover:bg-brand-50/50",
+        isDragging && "border-brand-500 bg-brand-50",
+        isBusy && "opacity-60 pointer-events-none"
+      )}
     >
-      <CardHeader>
-        <CardTitle>Upload your syllabus PDF</CardTitle>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-3">
-        <p className="text-sm text-zinc-600">
-          Drag and drop a PDF here, or choose a file. The server extracts raw text using <code>pdf-parse</code> and asks
-          Groq to find assignments & tests.
-        </p>
+      <input
+        ref={inputRef}
+        type="file"
+        accept="application/pdf"
+        className="hidden"
+        onChange={onChange}
+        disabled={isBusy}
+      />
 
-        <div className="flex flex-wrap items-center gap-3">
-          <input
-            ref={inputRef}
-            type="file"
-            accept="application/pdf"
-            className="hidden"
-            onChange={onChange}
-            disabled={isBusy}
+      {isBusy ? (
+        <>
+          <Loader2 className="w-8 h-8 text-brand-500 animate-spin mb-3" />
+          <p className="text-sm font-medium text-[var(--text-secondary)]">
+            Extracting events...
+          </p>
+        </>
+      ) : (
+        <>
+          <FileUp
+            className={cn(
+              "w-10 h-10 mb-3 transition-colors duration-200",
+              isDragging ? "text-brand-500" : "text-[var(--text-tertiary)]"
+            )}
           />
-          <Button onClick={pick} variant="default" disabled={isBusy}>
-            {isBusy ? "Parsing..." : "Choose PDF"}
-          </Button>
-          <span className="text-xs text-zinc-500">Max 10MB recommended</span>
-        </div>
-      </CardContent>
-    </Card>
+          <p className="text-sm font-medium text-[var(--text-primary)] mb-1">
+            Drop your syllabus PDF
+          </p>
+          <p className="text-xs text-[var(--text-tertiary)]">
+            or click to browse
+          </p>
+          <p className="text-xs text-[var(--text-tertiary)] mt-4">
+            PDF up to 10MB
+          </p>
+        </>
+      )}
+    </div>
   );
 }

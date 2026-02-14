@@ -2,8 +2,181 @@
 @tailwind components;
 @tailwind utilities;
 
-html,
-body {
-  height: 100%;
+@layer base {
+  :root {
+    /* Brand palette — warm amber/orange to give Almanac its own identity */
+    --brand-50: #fef7ee;
+    --brand-100: #fdedd3;
+    --brand-200: #fad6a5;
+    --brand-300: #f6b96d;
+    --brand-400: #f19433;
+    --brand-500: #ee7a12;
+    --brand-600: #df6008;
+    --brand-700: #b94809;
+    --brand-800: #93390f;
+    --brand-900: #773110;
+    --brand-950: #401606;
+
+    /* Surfaces */
+    --surface: #ffffff;
+    --surface-secondary: #f8f8f6;
+    --surface-tertiary: #f1f0ed;
+
+    /* Borders */
+    --border: #e4e2dd;
+    --border-subtle: #eeedea;
+
+    /* Text */
+    --text-primary: #1a1916;
+    --text-secondary: #6b6961;
+    --text-tertiary: #9c998f;
+  }
+
+  .dark {
+    --brand-50: #401606;
+    --brand-100: #773110;
+    --brand-200: #93390f;
+    --brand-300: #b94809;
+    --brand-400: #df6008;
+    --brand-500: #ee7a12;
+    --brand-600: #f19433;
+    --brand-700: #f6b96d;
+    --brand-800: #fad6a5;
+    --brand-900: #fdedd3;
+    --brand-950: #fef7ee;
+
+    --surface: #141310;
+    --surface-secondary: #1c1b17;
+    --surface-tertiary: #252420;
+
+    --border: #2e2d28;
+    --border-subtle: #222120;
+
+    --text-primary: #f1f0ed;
+    --text-secondary: #9c998f;
+    --text-tertiary: #6b6961;
+  }
+
+  html,
+  body {
+    height: 100%;
+    color: var(--text-primary);
+    background-color: var(--surface);
+    font-family: var(--font-body);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: var(--font-display);
+    font-weight: 400;
+    letter-spacing: -0.02em;
+  }
+
+  h1 {
+    font-size: 3.5rem;
+    line-height: 1.1;
+    letter-spacing: -0.03em;
+  }
+
+  h2 {
+    font-size: 2.5rem;
+    line-height: 1.2;
+  }
+
+  h3 {
+    font-size: 1.875rem;
+    line-height: 1.3;
+  }
+
+  h4 {
+    font-size: 1.5rem;
+    line-height: 1.4;
+  }
+
+  h5 {
+    font-size: 1.25rem;
+    line-height: 1.4;
+  }
+
+  h6 {
+    font-size: 1.125rem;
+    line-height: 1.4;
+  }
+
+  ::selection {
+    background-color: var(--brand-200);
+    color: var(--brand-950);
+  }
+
+  .dark ::selection {
+    background-color: var(--brand-800);
+    color: var(--brand-50);
+  }
+
+  *:focus-visible {
+    outline: 2px solid var(--brand-500);
+    outline-offset: 2px;
+  }
+}
+
+@layer utilities {
+  .text-primary {
+    color: var(--text-primary);
+  }
+
+  .text-secondary {
+    color: var(--text-secondary);
+  }
+
+  .text-tertiary {
+    color: var(--text-tertiary);
+  }
+}
+
+/* Shimmer loading effect */
+.shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.2) 20%,
+    rgba(255, 255, 255, 0.5) 60%,
+    rgba(255, 255, 255, 0)
+  );
+  background-size: 1000px 100%;
+  animation: shimmer 2s infinite;
+}
+
+.dark .shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(0, 0, 0, 0) 0%,
+    rgba(255, 255, 255, 0.05) 20%,
+    rgba(255, 255, 255, 0.1) 60%,
+    rgba(0, 0, 0, 0)
+  );
+}
+
+/* Custom scrollbar styling */
+.calendar-scroll::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.calendar-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.calendar-scroll::-webkit-scrollbar-thumb {
+  @apply bg-gray-300 dark:bg-gray-600 rounded;
+}
+
+.calendar-scroll::-webkit-scrollbar-thumb:hover {
+  @apply bg-gray-400 dark:bg-gray-500;
 }
 

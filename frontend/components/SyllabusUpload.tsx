@@ -93,11 +93,7 @@ export default function SyllabusUpload({ onUploadSuccess, courseName: initialCou
         formData.append('course_name', courseName);
       }
 
-      const response = await api.post<UploadResponse>('/syllabi/upload', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
+      const response = await api.post('/syllabi/upload', formData) as { data: UploadResponse };
 
       setParsedData(response.data);
       // Don't call onUploadSuccess here - wait for user to confirm assignments

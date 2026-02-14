@@ -84,8 +84,8 @@ export default function AssignmentList({ courseId, showCompleted = false }: Assi
 
   const handleToggleComplete = async (assignmentId: string, completed: boolean) => {
     try {
-      await api.post(`/assignments/${assignmentId}/complete`, null, {
-        params: { completed: !completed },
+      await api.put(`/assignments/${assignmentId}/complete`, {
+        completed: !completed,
       });
       
       setAssignments((prev) =>
