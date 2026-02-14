@@ -22,14 +22,17 @@ export async function syncEventsToCalendar(
   try {
     const session = await getServerSession(authOptions);
     const accessToken = session?.accessToken;
-    if (!accessToken) {
-      return { ok: false, error: "Not signed in (or missing Google access token)." };
+    const userId = session?.user?.id;
+
+    if (!accessToken || !userId) {
+      return { ok: false, error: "Not authenticated" };
     }
 
-    // Fetch events from database by IDs
+    // Fetch events from database by IDs (scoped to user)
     const events = await prisma.event.findMany({
       where: {
         id: { in: eventIds },
+        userId,
       },
       include: {
         course: true,

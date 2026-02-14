@@ -3,6 +3,8 @@
 import { prisma } from "@/lib/db";
 import { z } from "zod";
 import type { Course } from "@prisma/client";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 
 const CreateCourseSchema = z.object({
   code: z.string().min(1),
@@ -15,12 +17,18 @@ type CreateCourseInput = z.infer<typeof CreateCourseSchema>;
 
 /**
  * Create a new course.
- * Course code must be unique.
+ * Course code must be unique per user.
  */
 export async function createCourse(
   input: unknown
 ): Promise<{ ok: true; course: Course } | { ok: false; error: string }> {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return { ok: false, error: "Not authenticated" };
+    }
+
+    const userId = session.user.id;
     const parsed = CreateCourseSchema.safeParse(input);
     if (!parsed.success) {
       return { ok: false, error: "Invalid course data: " + parsed.error.message };
@@ -32,12 +40,13 @@ export async function createCourse(
         name: parsed.data.name,
         semester: parsed.data.semester,
         color: parsed.data.color || null,
+        userId,
       },
     });
 
     return { ok: true, course };
   } catch (e) {
-    // Handle unique constraint violation (duplicate course code)
+    // Handle unique constraint violation (duplicate course code for this user)
     if (e instanceof Error && e.message.includes("Unique constraint")) {
       const parsed = CreateCourseSchema.safeParse(input);
       return { ok: false, error: `Course ${parsed.success ? parsed.data.code : ''} already exists.` };
@@ -47,14 +56,21 @@ export async function createCourse(
 }
 
 /**
- * Fetch all courses, optionally filtered by semester.
+ * Fetch all courses for the authenticated user, optionally filtered by semester.
  */
 export async function getCourses(filters?: {
   semester?: string;
 }): Promise<{ ok: true; courses: Course[] } | { ok: false; error: string }> {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return { ok: false, error: "Not authenticated" };
+    }
+
+    const userId = session.user.id;
     const courses = await prisma.course.findMany({
       where: {
+        userId,
         semester: filters?.semester,
       },
       orderBy: {
@@ -70,33 +86,44 @@ export async function getCourses(filters?: {
 
 /**
  * Get existing course by code or create if doesn't exist.
+ * Scoped to authenticated user.
  * Useful for PDF parsing flow where course may or may not exist.
  */
 export async function getOrCreateCourse(
   input: CreateCourseInput
 ): Promise<{ ok: true; course: Course } | { ok: false; error: string }> {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return { ok: false, error: "Not authenticated" };
+    }
+
+    const userId = session.user.id;
     const parsed = CreateCourseSchema.safeParse(input);
     if (!parsed.success) {
       return { ok: false, error: "Invalid course data: " + parsed.error.message };
     }
 
-    // Check if course exists
-    const existing = await prisma.course.findUnique({
-      where: { code: parsed.data.code },
+    // Check if course exists for this user
+    const existing = await prisma.course.findFirst({
+      where: {
+        code: parsed.data.code,
+        userId,
+      },
     });
 
     if (existing) {
       return { ok: true, course: existing };
     }
 
-    // Create new course
+    // Create new course for this user
     const course = await prisma.course.create({
       data: {
         code: parsed.data.code,
         name: parsed.data.name,
         semester: parsed.data.semester,
         color: parsed.data.color || null,
+        userId,
       },
     });
 

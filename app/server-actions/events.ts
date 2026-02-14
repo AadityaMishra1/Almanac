@@ -4,6 +4,8 @@ import { prisma } from "@/lib/db";
 import { CreateEventSchema, canModifyEvent } from "@/lib/events";
 import { EventSource } from "@prisma/client";
 import type { Event } from "@prisma/client";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 
 /**
  * Create a new event in the database.
@@ -13,12 +15,27 @@ export async function createEvent(
   input: unknown
 ): Promise<{ ok: true; event: Event } | { ok: false; error: string }> {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return { ok: false, error: "Not authenticated" };
+    }
+
+    const userId = session.user.id;
     const parsed = CreateEventSchema.safeParse(input);
     if (!parsed.success) {
       return { ok: false, error: "Invalid event data: " + parsed.error.message };
     }
 
     const data = parsed.data;
+
+    // Verify course ownership
+    const course = await prisma.course.findFirst({
+      where: { id: data.courseId, userId },
+    });
+
+    if (!course) {
+      return { ok: false, error: "Course not found or access denied" };
+    }
 
     // Set editable based on source
     const editable = data.source === EventSource.ALMANAC;
@@ -31,6 +48,7 @@ export async function createEvent(
         type: data.type,
         description: data.description,
         courseId: data.courseId,
+        userId,
         source: data.source || EventSource.ALMANAC,
         googleEventId: data.googleEventId || null,
         editable,
@@ -62,13 +80,20 @@ export async function updateEvent(
   }>
 ): Promise<{ ok: true; event: Event } | { ok: false; error: string }> {
   try {
-    // Check permission BEFORE attempting update
-    const existing = await prisma.event.findUnique({
-      where: { id: eventId },
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return { ok: false, error: "Not authenticated" };
+    }
+
+    const userId = session.user.id;
+
+    // Check permission and ownership BEFORE attempting update
+    const existing = await prisma.event.findFirst({
+      where: { id: eventId, userId },
     });
 
     if (!existing) {
-      return { ok: false, error: "Event not found." };
+      return { ok: false, error: "Event not found or access denied" };
     }
 
     if (!canModifyEvent(existing)) {
@@ -101,13 +126,20 @@ export async function deleteEvent(
   eventId: string
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   try {
-    // Check permission BEFORE attempting delete
-    const existing = await prisma.event.findUnique({
-      where: { id: eventId },
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return { ok: false, error: "Not authenticated" };
+    }
+
+    const userId = session.user.id;
+
+    // Check permission and ownership BEFORE attempting delete
+    const existing = await prisma.event.findFirst({
+      where: { id: eventId, userId },
     });
 
     if (!existing) {
-      return { ok: false, error: "Event not found." };
+      return { ok: false, error: "Event not found or access denied" };
     }
 
     if (!canModifyEvent(existing)) {
@@ -130,7 +162,7 @@ export async function deleteEvent(
 
 /**
  * Fetch events with optional filters.
- * No permission restrictions on read operations.
+ * Scoped to authenticated user.
  */
 export async function getEvents(filters?: {
   courseId?: string;
@@ -139,8 +171,15 @@ export async function getEvents(filters?: {
   endDate?: string; // ISO 8601
 }): Promise<{ ok: true; events: Event[] } | { ok: false; error: string }> {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return { ok: false, error: "Not authenticated" };
+    }
+
+    const userId = session.user.id;
     const events = await prisma.event.findMany({
       where: {
+        userId,
         courseId: filters?.courseId,
         source: filters?.source,
         date: {

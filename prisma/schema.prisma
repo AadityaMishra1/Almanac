@@ -7,7 +7,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
 }
 
 enum EventSource {
@@ -15,18 +15,48 @@ enum EventSource {
   GOOGLE_CALENDAR
 }
 
+// User model for multi-tenancy and NextAuth integration
+model User {
+  id            String   @id @default(uuid())
+  email         String   @unique
+  name          String?
+  image         String?
+
+  // Google OAuth tokens (encrypted storage)
+  googleAccessToken  String?  @db.Text
+  googleRefreshToken String?  @db.Text
+  googleTokenExpiry  DateTime?
+
+  // Relationships
+  courses           Course[]
+  events            Event[]
+  calendarSyncState CalendarSyncState?
+  chatCommands      ChatCommand[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("users")
+}
+
 model Course {
   id       String  @id @default(uuid())
-  code     String  @unique // e.g., "CSC 316"
+  code     String // e.g., "CSC 316" - uniqueness now scoped to user
   name     String // e.g., "Data Structures"
   color    String? // hex color for calendar UI (e.g., "#3b82f6")
   semester String // e.g., "Spring 2026"
+
+  // Multi-tenancy
+  userId   String
+  user     User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   events Event[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  @@unique([userId, code]) // Course code unique per user
+  @@index([userId])
   @@map("courses")
 }
 
@@ -36,12 +66,17 @@ model Event {
   date        String // ISO 8601 date (YYYY-MM-DD)
   time        String? // ISO 8601 time (HH:MM) or null for all-day
   type        String // e.g., "exam", "assignment", "quiz", "reading"
-  description String?
+  description String? @db.Text // PostgreSQL Text type for large content
 
   // Source authority and permissions
-  source        EventSource @default(ALMANAC)
-  googleEventId String?     @unique // Maps to Google Calendar event ID for sync
-  editable      Boolean     @default(true) // Computed: true for ALMANAC, false for GOOGLE_CALENDAR
+  source          EventSource @default(ALMANAC)
+  googleEventId   String?     @unique // Maps to Google Calendar event ID for sync
+  googleUpdatedAt DateTime?   // For last-write-wins conflict resolution
+  editable        Boolean     @default(true) // Computed: true for ALMANAC, false for GOOGLE_CALENDAR
+
+  // Multi-tenancy
+  userId   String
+  user     User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   // Relationships
   courseId String
@@ -51,8 +86,46 @@ model Event {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  @@index([userId])
   @@index([courseId])
   @@index([date])
   @@index([source])
+  @@index([userId, date]) // Efficient date-range queries per user
   @@map("events")
+}
+
+model CalendarSyncState {
+  id           String   @id @default(uuid())
+
+  // Multi-tenancy (one sync state per user)
+  userId       String   @unique
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  syncToken    String?  @db.Text // Google Calendar syncToken
+  lastSyncedAt DateTime @default(now())
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("calendar_sync_state")
+}
+
+model ChatCommand {
+  id          String   @id @default(uuid())
+  type        String   // 'modify' | 'delete' | 'create'
+  description String   // Human-readable: "Moved CSC 316 Midterm to March 15"
+  eventId     String   // The event that was affected
+  beforeState String?  @db.Text // JSON serialized EventSnapshot (null for create)
+  afterState  String?  @db.Text // JSON serialized EventSnapshot (null for delete)
+  undone      Boolean  @default(false)
+
+  // Multi-tenancy
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt   DateTime @default(now())
+
+  @@index([userId])
+  @@index([userId, createdAt])
+  @@map("chat_commands")
 }
