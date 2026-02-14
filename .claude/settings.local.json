@@ -42,7 +42,19 @@
       "WebFetch(domain:console.groq.com)",
       "Bash(pkill:*)",
       "Bash(xargs cat:*)",
-      "Bash(tree:*)"
+      "Bash(tree:*)",
+      "Bash(python3 -m venv:*)",
+      "Bash(source:*)",
+      "Bash(pip install:*)",
+      "Bash(python verify_setup.py:*)",
+      "Bash(pip uninstall:*)",
+      "Bash(chmod:*)",
+      "Bash(python main.py:*)",
+      "Bash(test:*)",
+      "Bash(.env << 'EOF'\n# Next.js Configuration\nNEXTAUTH_URL=http://localhost:3000\nNEXTAUTH_SECRET=your-long-random-string-change-this-in-production\n\n# Google OAuth \\(for Google Calendar integration\\)\nGOOGLE_CLIENT_ID=PASTE_YOUR_GOOGLE_CLIENT_ID_HERE\nGOOGLE_CLIENT_SECRET=PASTE_YOUR_GOOGLE_CLIENT_SECRET_HERE\n\n# AI API Keys\nDEEPSEEK_API_KEY=PASTE_YOUR_DEEPSEEK_API_KEY_HERE\n# DeepSeek V3: Chinese model with free 5M tokens \\($8.40 value\\)\n# Very cheap ongoing: $0.28/M tokens input, $0.42/M output\n# Good tool calling support, competitive with GPT-4\n# Get your key at: https://platform.deepseek.com/\n\n# Database \\(SQLite\\)\nDATABASE_URL=\"file:./dev.db\"\n\n# Optional: Groq API \\(if using Groq for AI\\)\n# GROQ_API_KEY=PASTE_YOUR_GROQ_API_KEY_HERE\nEOF)",
+      "Bash(course_scanner/.env << 'EOF'\n# Google Gemini API Key\n# Get your API key from: https://makersuite.google.com/app/apikey\nGEMINI_API_KEY=PASTE_YOUR_GEMINI_API_KEY_HERE\nEOF)",
+      "Bash(grep:*)",
+      "Bash(git checkout:*)"
     ]
   }
 }

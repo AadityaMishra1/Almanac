@@ -1,0 +1,8 @@
+google-genai
+pymupdf
+pandas
+openpyxl
+python-dotenv
+pydantic
+rich
+pillow

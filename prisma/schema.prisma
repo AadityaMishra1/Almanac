@@ -39,9 +39,10 @@ model Event {
   description String?
 
   // Source authority and permissions
-  source        EventSource @default(ALMANAC)
-  googleEventId String?     @unique // Maps to Google Calendar event ID for sync
-  editable      Boolean     @default(true) // Computed: true for ALMANAC, false for GOOGLE_CALENDAR
+  source          EventSource @default(ALMANAC)
+  googleEventId   String?     @unique // Maps to Google Calendar event ID for sync
+  googleUpdatedAt DateTime?   // Google Calendar 'updated' timestamp for conflict resolution
+  editable        Boolean     @default(true) // Computed: true for ALMANAC, false for GOOGLE_CALENDAR
 
   // Relationships
   courseId String
@@ -55,6 +56,18 @@ model Event {
   @@index([date])
   @@index([source])
   @@map("events")
+}
+
+model CalendarSyncState {
+  id           String   @id @default(uuid())
+  userId       String   @unique
+  syncToken    String?  // Google Calendar syncToken for incremental sync
+  lastSyncedAt DateTime @default(now())
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("calendar_sync_state")
 }
 
 model ChatCommand {
