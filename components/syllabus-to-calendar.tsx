@@ -6,7 +6,7 @@ import { EventsTable } from "@/components/events-table";
 import type { SyllabusEvent } from "@/lib/events";
 import { syncEventsToCalendar } from "@/app/server-actions/calendar";
 import { useSession } from "next-auth/react";
-import { getEvents } from "@/app/server-actions/events";
+import { getEvents, updateEvent, deleteEvent } from "@/app/server-actions/events";
 import { prismaEventToSyllabus } from "@/lib/events";
 import { useNotificationStore } from "@/lib/store";
 import { AlertCircle, Sparkles, Loader2 } from "lucide-react";
@@ -22,6 +22,7 @@ export function SyllabusToCalendar() {
   const [error, setError] = React.useState<string | null>(null);
   const [courseId, setCourseId] = React.useState<string | null>(null);
   const [courseName, setCourseName] = React.useState("");
+  const originalRowsRef = React.useRef<Row[]>([]);
 
   async function handlePdf(file: File) {
     setIsParsing(true);
@@ -63,6 +64,7 @@ export function SyllabusToCalendar() {
       }));
 
       setRows(loadedRows);
+      originalRowsRef.current = loadedRows;
     } catch (e) {
       setError(e instanceof Error ? e.message : "Something went wrong while parsing.");
     } finally {
@@ -74,14 +76,34 @@ export function SyllabusToCalendar() {
     setIsSyncing(true);
     setError(null);
     try {
-      const selectedEventIds = rows
-        .filter((r) => r.selected && r.id)
-        .map((r) => r.id!);
+      const selectedRows = rows.filter((r) => r.selected && r.id);
 
-      if (selectedEventIds.length === 0) {
+      if (selectedRows.length === 0) {
         throw new Error("No events selected for sync.");
       }
 
+      // Persist any edits the user made in the table before syncing
+      const editPromises = selectedRows
+        .filter((row) => {
+          const original = originalRowsRef.current.find((o) => o.id === row.id);
+          if (!original) return false;
+          return (
+            row.title !== original.title ||
+            row.date !== original.date ||
+            row.description !== original.description
+          );
+        })
+        .map((row) =>
+          updateEvent(row.id!, {
+            title: row.title,
+            date: row.date,
+            description: row.description,
+          })
+        );
+
+      await Promise.all(editPromises);
+
+      const selectedEventIds = selectedRows.map((r) => r.id!);
       const result = await syncEventsToCalendar(selectedEventIds);
       if (!result.ok) throw new Error(result.error);
 
@@ -111,6 +133,16 @@ export function SyllabusToCalendar() {
       });
     } finally {
       setIsSyncing(false);
+    }
+  }
+
+  async function handleDeleteRow(idx: number, id?: string) {
+    setRows((prev) => prev.filter((_, i) => i !== idx));
+    if (id) {
+      const result = await deleteEvent(id);
+      if (!result.ok) {
+        addNotification({ message: result.error, type: 'error' });
+      }
     }
   }
 
@@ -172,7 +204,7 @@ export function SyllabusToCalendar() {
             </div>
           </div>
 
-          <EventsTable rows={rows} onChange={setRows} />
+          <EventsTable rows={rows} onChange={setRows} onDeleteRow={handleDeleteRow} />
 
           <div className="rounded-xl bg-surface-secondary p-4">
             <div className="flex items-center justify-between gap-4">

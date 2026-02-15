@@ -3,7 +3,8 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { Providers } from "@/app/providers";
 import { Navigation } from "@/components/navigation";
-import Notifications from "@/frontend/components/Notifications";
+import { ChatPanel } from "@/components/chat-panel";
+import { ToastNotifications } from "@/components/toast-notifications";
 import { Instrument_Serif, DM_Sans } from "next/font/google";
 import "@/app/globals.css";
 
@@ -34,9 +35,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       <body className="antialiased">
         <Providers session={session}>
           <Navigation />
-          <div className="fixed top-4 right-4 z-50">
-            <Notifications compact={true} />
-          </div>
+          <ToastNotifications />
+          <ChatPanel />
           {children}
         </Providers>
       </body>

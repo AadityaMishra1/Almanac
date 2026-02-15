@@ -15,6 +15,9 @@ import {
 } from 'date-fns';
 import { X, Calendar as CalendarIcon } from 'lucide-react';
 import api from '@/lib/api';
+import { deleteEvent } from '@/app/server-actions/events';
+import { ConfirmDeleteDialog } from '@/components/confirm-delete-dialog';
+import { useNotificationStore } from '@/lib/store';
 
 import type { View, UnifiedEvent } from './calendar/types';
 import { getEventColor, getEventIcon } from './calendar/utils';
@@ -28,7 +31,11 @@ import { CalendarSkeleton } from './calendar/CalendarSkeleton';
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
 
-export default function ModernCalendar() {
+interface ModernCalendarProps {
+  refreshKey?: number;
+}
+
+export default function ModernCalendar({ refreshKey }: ModernCalendarProps = {}) {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [view, setView] = useState<View>('month');
   const [events, setEvents] = useState<UnifiedEvent[]>([]);
@@ -37,6 +44,9 @@ export default function ModernCalendar() {
   const [expandedDate, setExpandedDate] = useState<Date | null>(null);
   const [isMobile, setIsMobile] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const { addNotification } = useNotificationStore();
 
   // Mobile detection
   useEffect(() => {
@@ -104,7 +114,8 @@ export default function ModernCalendar() {
     }
   }, [currentDate, view]);
 
-  useEffect(() => { loadEvents(); }, [loadEvents]);
+  // Reload when refreshKey changes (external trigger)
+  useEffect(() => { loadEvents(); }, [loadEvents, refreshKey]);
 
   // Group events by date
   const eventsByDate = useMemo(() => {
@@ -134,6 +145,37 @@ export default function ModernCalendar() {
     return Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
   }, [currentDate]);
 
+  const handleDeleteEvent = useCallback(async () => {
+    if (!deleteTarget) return;
+    setIsDeleting(true);
+    try {
+      const result = await deleteEvent(deleteTarget);
+      if (!result.ok) {
+        addNotification({ message: result.error, type: 'error' });
+        return;
+      }
+      const messages: Record<string, { message: string; type: 'success' | 'warning' }> = {
+        removed: { message: 'Event deleted and removed from Google Calendar', type: 'success' },
+        not_synced: { message: 'Event deleted', type: 'success' },
+        failed: { message: 'Event deleted but failed to remove from Google Calendar', type: 'warning' },
+      };
+      const toast = messages[result.googleSyncResult];
+      addNotification({ message: toast.message, type: toast.type });
+      setSelectedEvent(null);
+      await loadEvents();
+    } catch {
+      addNotification({ message: 'Failed to delete event', type: 'error' });
+    } finally {
+      setIsDeleting(false);
+      setDeleteTarget(null);
+    }
+  }, [deleteTarget, addNotification, loadEvents]);
+
+  const onDeleteFromModal = useCallback((eventId: string) => {
+    setSelectedEvent(null);
+    setDeleteTarget(eventId);
+  }, []);
+
   const navigate = (direction: 'prev' | 'next') => {
     if (view === 'month') setCurrentDate((prev) => direction === 'prev' ? subMonths(prev, 1) : addMonths(prev, 1));
     else if (view === 'week') setCurrentDate((prev) => direction === 'prev' ? subWeeks(prev, 1) : addWeeks(prev, 1));
@@ -159,7 +201,15 @@ export default function ModernCalendar() {
         {loading ? <CalendarSkeleton /> : (
           <AgendaView currentDate={currentDate} events={eventsByDate} onEventClick={handleEventClick} />
         )}
-        {selectedEvent && <EventDetailModal event={selectedEvent} onClose={() => setSelectedEvent(null)} />}
+        {selectedEvent && <EventDetailModal event={selectedEvent} onClose={() => setSelectedEvent(null)} onDelete={onDeleteFromModal} />}
+        <ConfirmDeleteDialog
+          open={!!deleteTarget}
+          onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}
+          title="Delete event"
+          description="This event will be permanently removed. This action cannot be undone."
+          onConfirm={handleDeleteEvent}
+          isDeleting={isDeleting}
+        />
       </div>
     );
   }
@@ -482,7 +532,16 @@ export default function ModernCalendar() {
         </div>
       )}
 
-      {selectedEvent && <EventDetailModal event={selectedEvent} onClose={() => setSelectedEvent(null)} />}
+      {selectedEvent && <EventDetailModal event={selectedEvent} onClose={() => setSelectedEvent(null)} onDelete={onDeleteFromModal} />}
+
+      <ConfirmDeleteDialog
+        open={!!deleteTarget}
+        onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}
+        title="Delete event"
+        description="This event will be permanently removed. This action cannot be undone."
+        onConfirm={handleDeleteEvent}
+        isDeleting={isDeleting}
+      />
     </div>
   );
 }

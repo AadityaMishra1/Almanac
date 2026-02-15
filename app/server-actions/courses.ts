@@ -5,6 +5,7 @@ import { z } from "zod";
 import type { Course } from "@prisma/client";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { removeFromGoogleCalendar } from "@/app/server-actions/calendar";
 
 const CreateCourseSchema = z.object({
   code: z.string().min(1),
@@ -81,6 +82,68 @@ export async function getCourses(filters?: {
     return { ok: true, courses };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : "Failed to fetch courses." };
+  }
+}
+
+/**
+ * Delete a course and all its events (via cascade).
+ * Enforces ownership check.
+ * Also removes synced events from Google Calendar before cascade delete.
+ */
+export async function deleteCourse(
+  courseId: string
+): Promise<
+  | { ok: true; eventsRemoved: number; googleRemoved: number; googleFailed: number }
+  | { ok: false; error: string }
+> {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return { ok: false, error: "Not authenticated" };
+    }
+
+    const userId = session.user.id;
+
+    const course = await prisma.course.findFirst({
+      where: { id: courseId, userId },
+    });
+
+    if (!course) {
+      return { ok: false, error: "Course not found or access denied" };
+    }
+
+    // Fetch synced events BEFORE cascade delete
+    const syncedEvents = await prisma.event.findMany({
+      where: { courseId, userId, googleEventId: { not: null } },
+      select: { googleEventId: true },
+    });
+
+    // Batch-remove from Google Calendar
+    let googleRemoved = 0;
+    let googleFailed = 0;
+    if (syncedEvents.length > 0 && session.accessToken) {
+      const results = await Promise.allSettled(
+        syncedEvents.map((evt) =>
+          removeFromGoogleCalendar(session.accessToken!, evt.googleEventId!)
+        )
+      );
+      for (const result of results) {
+        if (result.status === "fulfilled" && result.value.ok) {
+          googleRemoved++;
+        } else {
+          googleFailed++;
+        }
+      }
+    }
+
+    // Cascade delete course + events
+    await prisma.course.delete({
+      where: { id: courseId },
+    });
+
+    return { ok: true, eventsRemoved: syncedEvents.length, googleRemoved, googleFailed };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Failed to delete course." };
   }
 }
 

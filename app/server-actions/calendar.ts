@@ -16,6 +16,27 @@ function addDays(isoDate: string, days: number) {
   return `${year}-${month}-${day}`;
 }
 
+export async function removeFromGoogleCalendar(
+  accessToken: string,
+  googleEventId: string
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  try {
+    const calendar = getCalendarClient(accessToken);
+    await calendar.events.delete({
+      calendarId: "primary",
+      eventId: googleEventId,
+    });
+    return { ok: true };
+  } catch (e: unknown) {
+    const error = e as { code?: number; message?: string };
+    // 404 or 410 means the event is already gone — treat as success
+    if (error.code === 404 || error.code === 410) {
+      return { ok: true };
+    }
+    return { ok: false, error: error.message ?? "Failed to remove from Google Calendar." };
+  }
+}
+
 export async function syncEventsToCalendar(
   eventIds: string[]
 ): Promise<{ ok: true } | { ok: false; error: string }> {

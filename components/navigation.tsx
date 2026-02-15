@@ -3,12 +3,14 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signIn, signOut, useSession } from "next-auth/react";
-import { Upload, Calendar } from "lucide-react";
+import { Upload, Calendar, MessageSquare } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useChatStore } from "@/lib/store";
 
 export function Navigation() {
   const { data: session, status } = useSession();
   const pathname = usePathname();
+  const { isOpen: chatOpen, toggleChat } = useChatStore();
 
   const isActive = (path: string) => pathname === path;
 
@@ -54,6 +56,22 @@ export function Navigation() {
         )}
 
         <div className="flex items-center gap-3">
+          {session && (
+            <button
+              onClick={toggleChat}
+              className={cn(
+                "flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium transition-all duration-150",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20",
+                chatOpen
+                  ? "bg-surface-tertiary text-[var(--text-primary)]"
+                  : "text-[var(--text-secondary)] hover:bg-surface-secondary hover:text-[var(--text-primary)]"
+              )}
+            >
+              <MessageSquare className="h-4 w-4" />
+              <span className="hidden sm:inline">AI</span>
+            </button>
+          )}
+
           {status === "loading" ? (
             <div className="h-7 w-20 animate-pulse rounded-lg bg-surface-secondary shimmer" />
           ) : session ? (

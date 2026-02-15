@@ -87,3 +87,48 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
   },
 }));
 
+// ─── Chat Store ─────────────────────────────────────────────────────────────
+
+interface ChatMessage {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+  createdAt: string;
+  actionsPerformed?: boolean;
+}
+
+interface ChatState {
+  messages: ChatMessage[];
+  isOpen: boolean;
+  isLoading: boolean;
+  calendarVersion: number;
+  addMessage: (message: Omit<ChatMessage, "id" | "createdAt">) => void;
+  setLoading: (loading: boolean) => void;
+  toggleChat: () => void;
+  setOpen: (open: boolean) => void;
+  clearMessages: () => void;
+  bumpCalendarVersion: () => void;
+}
+
+export const useChatStore = create<ChatState>((set) => ({
+  messages: [],
+  isOpen: false,
+  isLoading: false,
+  calendarVersion: 0,
+  addMessage: (message) => {
+    const newMessage: ChatMessage = {
+      ...message,
+      id: Date.now().toString() + Math.random().toString(36).slice(2, 6),
+      createdAt: new Date().toISOString(),
+    };
+    set((state) => ({
+      messages: [...state.messages, newMessage],
+    }));
+  },
+  setLoading: (loading) => set({ isLoading: loading }),
+  toggleChat: () => set((state) => ({ isOpen: !state.isOpen })),
+  setOpen: (open) => set({ isOpen: open }),
+  clearMessages: () => set({ messages: [] }),
+  bumpCalendarVersion: () => set((state) => ({ calendarVersion: state.calendarVersion + 1 })),
+}));
+

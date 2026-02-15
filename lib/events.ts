@@ -54,7 +54,7 @@ export function normalizeAndValidateEvents(input: unknown): SyllabusEvent[] {
   }
 
   if (typeof input === "object" && input && "events" in input) {
-    const maybeEvents = (input as any).events;
+    const maybeEvents = (input as Record<string, unknown>).events;
     const nested = SyllabusEventsResponseSchema.safeParse(maybeEvents);
     if (nested.success) {
       return nested.data.map((event) => ({ ...event, date: coerceToIsoDate(event.date) }));

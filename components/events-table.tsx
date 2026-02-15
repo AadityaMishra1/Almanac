@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Calendar } from "lucide-react";
+import { Calendar, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { SyllabusEvent } from "@/lib/events";
 
@@ -22,7 +22,7 @@ function getTypeBadgeColors(type: string) {
   return "bg-surface-tertiary text-[var(--text-secondary)]";
 }
 
-export function EventsTable({ rows, onChange }: { rows: Row[]; onChange: (rows: Row[]) => void }) {
+export function EventsTable({ rows, onChange, onDeleteRow }: { rows: Row[]; onChange: (rows: Row[]) => void; onDeleteRow?: (idx: number, id?: string) => void }) {
   function updateRow(idx: number, patch: Partial<Row>) {
     onChange(rows.map((r, i) => (i === idx ? { ...r, ...patch } : r)));
   }
@@ -78,13 +78,22 @@ export function EventsTable({ rows, onChange }: { rows: Row[]; onChange: (rows: 
               />
             </div>
 
-            <div className="w-full sm:w-auto">
+            <div className="flex items-center gap-2 w-full sm:w-auto">
               <input
                 type="date"
                 value={row.date}
                 onChange={(e) => updateRow(idx, { date: e.target.value })}
                 className="w-full sm:w-28 rounded-lg border border-[var(--border-subtle)] bg-surface-secondary px-2.5 py-1.5 text-xs text-[var(--text-primary)] text-center transition-colors duration-150 focus:border-brand-400 focus:outline-none"
               />
+              {onDeleteRow && (
+                <button
+                  onClick={() => onDeleteRow(idx, (row as Row & { id?: string }).id)}
+                  className="p-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-150 hover:bg-red-50 dark:hover:bg-red-950/30"
+                  aria-label={`Delete ${row.title}`}
+                >
+                  <Trash2 className="w-3.5 h-3.5 text-[var(--text-tertiary)] hover:text-red-500 transition-colors duration-150" />
+                </button>
+              )}
             </div>
           </div>
           </div>

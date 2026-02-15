@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 import { format, parseISO } from 'date-fns';
-import { X, Clock, MapPin, GraduationCap, CheckCircle2 } from 'lucide-react';
+import { X, Clock, MapPin, GraduationCap, CheckCircle2, Trash2 } from 'lucide-react';
 import type { UnifiedEvent } from './types';
 import { getEventColor, getEventIcon } from './utils';
 import { cn } from '@/lib/utils';
@@ -10,9 +10,10 @@ import { cn } from '@/lib/utils';
 interface EventDetailModalProps {
   event: UnifiedEvent;
   onClose: () => void;
+  onDelete?: (eventId: string) => void;
 }
 
-export function EventDetailModal({ event, onClose }: EventDetailModalProps) {
+export function EventDetailModal({ event, onClose, onDelete }: EventDetailModalProps) {
   const colors = getEventColor(event);
   const Icon = getEventIcon(event);
 
@@ -97,14 +98,25 @@ export function EventDetailModal({ event, onClose }: EventDetailModalProps) {
               )}
             </div>
 
-            <button
-              id="modal-close-button"
-              onClick={onClose}
-              className="p-2 rounded-lg hover:bg-surface-secondary transition-colors duration-150 flex-shrink-0 min-h-[40px] min-w-[40px] flex items-center justify-center"
-              aria-label="Close modal"
-            >
-              <X className="w-5 h-5 text-[var(--text-tertiary)]" aria-hidden="true" />
-            </button>
+            <div className="flex items-center gap-1 flex-shrink-0">
+              {event.source === 'database' && onDelete && (
+                <button
+                  onClick={() => onDelete(event.id)}
+                  className="p-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors duration-150 min-h-[40px] min-w-[40px] flex items-center justify-center group/trash"
+                  aria-label="Delete event"
+                >
+                  <Trash2 className="w-4 h-4 text-[var(--text-tertiary)] group-hover/trash:text-red-500 transition-colors duration-150" aria-hidden="true" />
+                </button>
+              )}
+              <button
+                id="modal-close-button"
+                onClick={onClose}
+                className="p-2 rounded-lg hover:bg-surface-secondary transition-colors duration-150 min-h-[40px] min-w-[40px] flex items-center justify-center"
+                aria-label="Close modal"
+              >
+                <X className="w-5 h-5 text-[var(--text-tertiary)]" aria-hidden="true" />
+              </button>
+            </div>
           </div>
 
           <div className="border-t border-border-subtle" />

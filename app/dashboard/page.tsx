@@ -1,16 +1,96 @@
 'use client';
 
-import { useEffect, Suspense } from 'react';
+import { useState, useEffect, useCallback, useRef, Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import ModernCalendar from '@/components/ModernCalendar';
-import { useNotificationStore } from '@/lib/store';
-import { Upload } from 'lucide-react';
+import { CreateEventModal } from '@/components/create-event-modal';
+import { useNotificationStore, useChatStore } from '@/lib/store';
+import { Upload, Plus, GraduationCap, Trash2, ChevronDown, X } from 'lucide-react';
 import { format } from 'date-fns';
+import { getCourses, deleteCourse } from '@/app/server-actions/courses';
+import { ConfirmDeleteDialog } from '@/components/confirm-delete-dialog';
+import type { Course } from '@prisma/client';
+import { cn } from '@/lib/utils';
 
 function DashboardContent() {
   const searchParams = useSearchParams();
   const addNotification = useNotificationStore((state) => state.addNotification);
+  const calendarVersion = useChatStore((s) => s.calendarVersion);
+  const [showCreateEvent, setShowCreateEvent] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [coursesOpen, setCoursesOpen] = useState(false);
+  const [deleteTargetCourse, setDeleteTargetCourse] = useState<Course | null>(null);
+  const [isDeletingCourse, setIsDeletingCourse] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  const handleEventCreated = useCallback(() => {
+    setRefreshKey((k) => k + 1);
+  }, []);
+
+  const loadCourses = useCallback(async () => {
+    const result = await getCourses();
+    if (result.ok) {
+      setCourses(result.courses);
+    }
+  }, []);
+
+  useEffect(() => { loadCourses(); }, [loadCourses]);
+
+  // Refresh calendar when chat actions modify events
+  useEffect(() => {
+    if (calendarVersion > 0) {
+      setRefreshKey((k) => k + 1);
+    }
+  }, [calendarVersion]);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setCoursesOpen(false);
+      }
+    }
+    if (coursesOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [coursesOpen]);
+
+  async function handleDeleteCourse() {
+    if (!deleteTargetCourse) return;
+    setIsDeletingCourse(true);
+    try {
+      const result = await deleteCourse(deleteTargetCourse.id);
+      if (!result.ok) {
+        addNotification({ message: result.error, type: 'error' });
+        return;
+      }
+      let message: string;
+      if (result.eventsRemoved === 0) {
+        message = `Deleted ${deleteTargetCourse.name}`;
+      } else if (result.googleRemoved > 0 && result.googleFailed === 0) {
+        message = `Deleted ${deleteTargetCourse.name} — removed ${result.googleRemoved} event${result.googleRemoved !== 1 ? 's' : ''} from Google Calendar`;
+      } else if (result.googleRemoved > 0 && result.googleFailed > 0) {
+        message = `Deleted ${deleteTargetCourse.name} — ${result.googleRemoved} event${result.googleRemoved !== 1 ? 's' : ''} removed, ${result.googleFailed} failed to remove from Google Calendar`;
+      } else {
+        message = `Deleted ${deleteTargetCourse.name} and all its events`;
+      }
+      addNotification({
+        message,
+        type: result.googleFailed > 0 ? 'warning' : 'success',
+      });
+      await loadCourses();
+      setRefreshKey((k) => k + 1);
+    } catch {
+      addNotification({ message: 'Failed to delete course', type: 'error' });
+    } finally {
+      setIsDeletingCourse(false);
+      setDeleteTargetCourse(null);
+    }
+  }
 
   useEffect(() => {
     if (searchParams?.get('calendar_connected') === 'true') {
@@ -41,21 +121,126 @@ function DashboardContent() {
             </div>
           </div>
 
-          {/* Upload action — brand accent */}
-          <Link
-            href="/"
-            className="group inline-flex items-center gap-2.5 px-4 py-2.5 rounded-lg
-              bg-brand-500 text-white font-semibold text-sm
-              hover:bg-brand-600 active:bg-brand-700
-              focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2
-              transition-colors duration-150
-              shadow-sm hover:shadow-md
-              min-h-[44px]"
-          >
-            <Upload className="w-4 h-4 group-hover:scale-110 transition-transform duration-150" />
-            <span className="hidden sm:inline">Upload Syllabus</span>
-            <span className="sm:hidden">Upload</span>
-          </Link>
+          {/* Actions */}
+          <div className="flex items-center gap-3">
+            {/* Courses dropdown */}
+            <div className="relative" ref={dropdownRef}>
+              <button
+                onClick={() => setCoursesOpen(!coursesOpen)}
+                className={cn(
+                  'inline-flex items-center gap-2 px-3.5 py-2.5 rounded-lg text-sm font-medium',
+                  'border border-border-subtle bg-surface hover:bg-surface-secondary',
+                  'text-[var(--text-primary)] transition-colors duration-150',
+                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2',
+                  'min-h-[44px]',
+                  coursesOpen && 'bg-surface-secondary'
+                )}
+              >
+                <GraduationCap className="w-4 h-4 text-[var(--text-secondary)]" />
+                <span className="hidden sm:inline">Courses</span>
+                {courses.length > 0 && (
+                  <span className="text-xs bg-surface-tertiary text-[var(--text-secondary)] rounded-full px-1.5 py-0.5 font-medium">
+                    {courses.length}
+                  </span>
+                )}
+                <ChevronDown className={cn(
+                  'w-3.5 h-3.5 text-[var(--text-tertiary)] transition-transform duration-150',
+                  coursesOpen && 'rotate-180'
+                )} />
+              </button>
+
+              {coursesOpen && (
+                <div className="absolute right-0 mt-2 w-72 bg-surface border border-border-subtle rounded-xl shadow-lg animate-scale-in origin-top-right z-50">
+                  <div className="p-3 border-b border-border-subtle">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-semibold uppercase tracking-wider text-[var(--text-tertiary)]">
+                        Your courses
+                      </span>
+                      <button
+                        onClick={() => setCoursesOpen(false)}
+                        className="p-1 rounded hover:bg-surface-secondary transition-colors duration-150"
+                      >
+                        <X className="w-3.5 h-3.5 text-[var(--text-tertiary)]" />
+                      </button>
+                    </div>
+                  </div>
+
+                  {courses.length === 0 ? (
+                    <div className="p-6 text-center">
+                      <GraduationCap className="w-8 h-8 mx-auto mb-2 text-[var(--text-tertiary)] opacity-50" />
+                      <p className="text-sm text-[var(--text-secondary)]">No courses yet</p>
+                      <p className="text-xs text-[var(--text-tertiary)] mt-1">Upload a syllabus to get started</p>
+                    </div>
+                  ) : (
+                    <div className="max-h-64 overflow-y-auto py-1">
+                      {courses.map((course) => (
+                        <div
+                          key={course.id}
+                          className="group flex items-center justify-between px-3 py-2.5 hover:bg-surface-secondary transition-colors duration-150"
+                        >
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            {course.color && (
+                              <div
+                                className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+                                style={{ backgroundColor: course.color }}
+                              />
+                            )}
+                            <div className="min-w-0">
+                              <div className="text-sm font-medium text-[var(--text-primary)] truncate">
+                                {course.name}
+                              </div>
+                              <div className="text-xs text-[var(--text-tertiary)]">
+                                {course.code}
+                              </div>
+                            </div>
+                          </div>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setDeleteTargetCourse(course);
+                              setCoursesOpen(false);
+                            }}
+                            className="p-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-150 hover:bg-red-50 dark:hover:bg-red-950/30"
+                            aria-label={`Delete ${course.name}`}
+                          >
+                            <Trash2 className="w-3.5 h-3.5 text-[var(--text-tertiary)] hover:text-red-500 transition-colors duration-150" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <button
+              onClick={() => setShowCreateEvent(true)}
+              className="group inline-flex items-center gap-2 px-4 py-2.5 rounded-lg
+                border border-border text-[var(--text-primary)] font-semibold text-sm bg-surface
+                hover:bg-surface-secondary active:bg-surface-tertiary
+                focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2
+                transition-colors duration-150
+                min-h-[44px]"
+            >
+              <Plus className="w-4 h-4 group-hover:scale-110 transition-transform duration-150" />
+              <span className="hidden sm:inline">New Event</span>
+              <span className="sm:hidden">New</span>
+            </button>
+            <Link
+              href="/"
+              className="group inline-flex items-center gap-2.5 px-4 py-2.5 rounded-lg
+                bg-brand-500 text-white font-semibold text-sm
+                hover:bg-brand-600 active:bg-brand-700
+                focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2
+                transition-colors duration-150
+                shadow-sm hover:shadow-md
+                min-h-[44px]"
+            >
+              <Upload className="w-4 h-4 group-hover:scale-110 transition-transform duration-150" />
+              <span className="hidden sm:inline">Upload Syllabus</span>
+              <span className="sm:hidden">Upload</span>
+            </Link>
+          </div>
         </div>
       </div>
 
@@ -64,8 +249,23 @@ function DashboardContent() {
         className="flex-1 max-w-[1600px] mx-auto w-full px-4 sm:px-6 lg:px-8 py-6 sm:py-8"
         style={{ animationDelay: '100ms' }}
       >
-        <ModernCalendar />
+        <ModernCalendar refreshKey={refreshKey} />
       </div>
+
+      <CreateEventModal
+        open={showCreateEvent}
+        onOpenChange={setShowCreateEvent}
+        onCreated={handleEventCreated}
+      />
+
+      <ConfirmDeleteDialog
+        open={!!deleteTargetCourse}
+        onOpenChange={(open) => { if (!open) setDeleteTargetCourse(null); }}
+        title={`Delete ${deleteTargetCourse?.name ?? 'course'}?`}
+        description="This will permanently delete the course and all its events. This action cannot be undone."
+        onConfirm={handleDeleteCourse}
+        isDeleting={isDeletingCourse}
+      />
     </div>
   );
 }

@@ -6,6 +6,7 @@ import { EventSource } from "@prisma/client";
 import type { Event } from "@prisma/client";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { removeFromGoogleCalendar } from "@/app/server-actions/calendar";
 
 /**
  * Create a new event in the database.
@@ -121,10 +122,14 @@ export async function updateEvent(
 /**
  * Delete an event.
  * Enforces permission: only ALMANAC events can be deleted.
+ * Also removes the event from Google Calendar if it was synced.
  */
 export async function deleteEvent(
   eventId: string
-): Promise<{ ok: true } | { ok: false; error: string }> {
+): Promise<
+  | { ok: true; googleSyncResult: "removed" | "not_synced" | "failed" }
+  | { ok: false; error: string }
+> {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
@@ -149,14 +154,86 @@ export async function deleteEvent(
       };
     }
 
-    // Permission check passed, proceed with delete
+    // Remove from Google Calendar if synced
+    let googleSyncResult: "removed" | "not_synced" | "failed" = "not_synced";
+    if (existing.googleEventId && session.accessToken) {
+      const gcResult = await removeFromGoogleCalendar(
+        session.accessToken,
+        existing.googleEventId
+      );
+      googleSyncResult = gcResult.ok ? "removed" : "failed";
+    }
+
+    // Always proceed with DB delete regardless of Google Calendar result
     await prisma.event.delete({
       where: { id: eventId },
     });
 
-    return { ok: true };
+    return { ok: true, googleSyncResult };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : "Failed to delete event." };
+  }
+}
+
+/**
+ * Delete all events for a given course.
+ * Enforces auth and course ownership.
+ * Also removes synced events from Google Calendar.
+ */
+export async function deleteEventsByCourse(
+  courseId: string
+): Promise<
+  | { ok: true; count: number; googleRemoved: number; googleFailed: number }
+  | { ok: false; error: string }
+> {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return { ok: false, error: "Not authenticated" };
+    }
+
+    const userId = session.user.id;
+
+    const course = await prisma.course.findFirst({
+      where: { id: courseId, userId },
+    });
+
+    if (!course) {
+      return { ok: false, error: "Course not found or access denied" };
+    }
+
+    // Query synced events BEFORE deleting from DB
+    const syncedEvents = await prisma.event.findMany({
+      where: { courseId, userId, googleEventId: { not: null } },
+      select: { googleEventId: true },
+    });
+
+    // Batch-remove from Google Calendar
+    let googleRemoved = 0;
+    let googleFailed = 0;
+    if (syncedEvents.length > 0 && session.accessToken) {
+      const results = await Promise.allSettled(
+        syncedEvents.map((evt) =>
+          removeFromGoogleCalendar(session.accessToken!, evt.googleEventId!)
+        )
+      );
+      for (const result of results) {
+        if (result.status === "fulfilled" && result.value.ok) {
+          googleRemoved++;
+        } else {
+          googleFailed++;
+        }
+      }
+    }
+
+    // Always proceed with DB delete
+    const result = await prisma.event.deleteMany({
+      where: { courseId, userId },
+    });
+
+    return { ok: true, count: result.count, googleRemoved, googleFailed };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Failed to delete events." };
   }
 }
 

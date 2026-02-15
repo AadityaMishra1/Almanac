@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 import { parseSyllabusPdfToText } from "@/lib/pdf";
 import { extractEventsFromSyllabusText } from "@/lib/groq";
-import { normalizeAndValidateEvents, syllabusEventToCreateInput } from "@/lib/events";
+import { extractEventsFromPdfWithVision } from "@/lib/gemini";
+import { normalizeAndValidateEvents, SyllabusEvent, syllabusEventToCreateInput } from "@/lib/events";
 import { getOrCreateCourse } from "@/app/server-actions/courses";
 import { createEvent } from "@/app/server-actions/events";
 
@@ -9,6 +12,11 @@ export const runtime = "nodejs";
 
 export async function POST(request: Request) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const formData = await request.formData();
     const file = formData.get("file");
 
@@ -22,9 +30,34 @@ export async function POST(request: Request) {
     }
 
     const buffer = Buffer.from(await file.arrayBuffer());
-    const text = await parseSyllabusPdfToText(buffer);
-    const aiEvents = await extractEventsFromSyllabusText(text);
-    const events = normalizeAndValidateEvents(aiEvents);
+
+    // PRIMARY: Gemini Vision (handles text, scanned, and image-based PDFs)
+    let events: SyllabusEvent[] | null = null;
+    let usedPipeline = "none";
+    try {
+      const geminiResult = await extractEventsFromPdfWithVision(buffer, file.name);
+      console.log("[parse] Gemini raw result:", JSON.stringify(geminiResult)?.slice(0, 500));
+      if (geminiResult != null) {
+        events = normalizeAndValidateEvents(geminiResult);
+        usedPipeline = "gemini";
+        console.log(`[parse] ✅ Gemini Vision → ${events.length} events`);
+      }
+    } catch (geminiErr) {
+      console.error("[parse] Gemini pipeline failed, falling back:", geminiErr);
+      events = null;
+    }
+
+    // FALLBACK: pdf-parse text extraction -> Groq LLM (text-based PDFs only)
+    if (!events || events.length === 0) {
+      console.log("[parse] Using fallback: pdf-parse → Groq");
+      const text = await parseSyllabusPdfToText(buffer);
+      const aiEvents = await extractEventsFromSyllabusText(text);
+      events = normalizeAndValidateEvents(aiEvents);
+      usedPipeline = "groq-fallback";
+      console.log(`[parse] ✅ Groq fallback → ${events.length} events`);
+    }
+
+    console.log(`[parse] Final pipeline: ${usedPipeline}, events: ${events.map(e => `${e.title} (${e.date})`).join(", ")}`);
 
     // Get course name from form data (user provided simple text input)
     const courseName = formData.get("courseName") as string | null;

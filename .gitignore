@@ -5,6 +5,9 @@
 .env.bak
 .env.bak*
 *.env.bak
+**/.env
+**/.env.example
+**/venv/
 
 # Dependencies
 node_modules/
