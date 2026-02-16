@@ -6,7 +6,6 @@
 .env.bak*
 *.env.bak
 **/.env
-**/.env.example
 **/venv/
 
 # Dependencies
