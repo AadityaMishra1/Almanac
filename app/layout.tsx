@@ -24,7 +24,10 @@ const dmSans = DM_Sans({
 
 export const metadata: Metadata = {
   title: "Almanac — Syllabus to Calendar",
-  description: "Upload a syllabus PDF, review extracted events, sync to Google Calendar."
+  description: "Upload a syllabus PDF, review extracted events, sync to Google Calendar.",
+  verification: {
+    google: "DOF2vK4dA2URwZnf9BQuwIN3qEz43zoVgK3dyIociF8",
+  },
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
