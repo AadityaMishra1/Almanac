@@ -11,7 +11,7 @@ A calendar app for college students: upload a syllabus PDF, AI extracts deadline
 - AI: Gemini (syllabus/calendar parsing), Groq (chat)
 - Calendar sync: Google Calendar API via googleapis
 - PDF text extraction: `pdf-parse` npm package in `lib/pdf.ts`
-- Python backend in `backend/` (Gemini + Groq multi-model parsing with fallback)
+- AI parsing: Next.js API routes with Gemini (syllabus) and Groq (chat) — no separate backend
 
 ## Structure
 
@@ -24,9 +24,7 @@ components/         → React components
   ui/               → shadcn primitives (button, card, input, table, checkbox, textarea)
   calendar/         → Calendar-specific components
   navigation.tsx    → Persistent nav header
-frontend/           → Older components (still partially imported — e.g. Notifications)
 lib/                → auth.ts, api.ts, store.ts, utils.ts, groq.ts, pdf.ts, google.ts
-backend/            → Python AI parsing services (Gemini + Groq, multi-model fallback)
 prisma/             → Schema & migrations
 ```
 
