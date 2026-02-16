@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signIn, signOut, useSession } from "next-auth/react";
-import { Upload, Calendar } from "lucide-react";
+import { Upload, Calendar, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useChatStore } from "@/lib/store";
 
@@ -78,6 +78,19 @@ export function Navigation() {
               <div className="flex h-7 w-7 items-center justify-center rounded-full bg-brand-100 text-xs font-medium text-brand-700">
                 {session.user?.name?.[0] || session.user?.email?.[0] || "U"}
               </div>
+              <Link
+                href="/settings"
+                className={cn(
+                  "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-all duration-150",
+                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20",
+                  isActive("/settings")
+                    ? "bg-surface-tertiary text-[var(--text-primary)]"
+                    : "text-[var(--text-secondary)] hover:bg-surface-secondary hover:text-[var(--text-primary)]"
+                )}
+              >
+                <Settings className="h-4 w-4" />
+                <span className="hidden sm:inline">Settings</span>
+              </Link>
               <button
                 onClick={() => signOut()}
                 className="text-sm font-medium text-[var(--text-secondary)] transition-colors duration-150 hover:text-[var(--text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20"
