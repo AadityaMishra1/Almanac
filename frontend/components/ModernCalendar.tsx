@@ -42,7 +42,7 @@ export default function ModernCalendar() {
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
       // Don't trigger if modal is open or typing in input
-      if (selectedEvent || expandedDate || e.target instanceof HTMLInputElement) return;
+      if (selectedEvent || expandedDate || e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
 
       switch (e.key) {
         case 'ArrowLeft':

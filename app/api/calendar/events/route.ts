@@ -60,8 +60,10 @@ export async function GET(req: NextRequest) {
       end_time: event.time
         ? `${event.date}T${event.time}:00`
         : `${event.date}T23:59:59`,
-      course_name: event.course.name,
-      course_code: event.course.code,
+      course_name: event.course?.name ?? "No Course",
+      course_code: event.course?.code ?? "",
+      course_id: event.courseId || undefined,
+      course_color: event.course?.color || null,
       assignment_type: event.type,
       is_synced_to_calendar: !!event.googleEventId,
       google_event_id: event.googleEventId,

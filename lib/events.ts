@@ -71,7 +71,7 @@ export const CreateEventSchema = z.object({
   time: z.string().optional().nullable(), // ISO 8601 time (HH:MM) or null
   type: z.string().min(1), // exam, assignment, quiz, reading
   description: z.string().optional().default(""),
-  courseId: z.string().uuid(), // Required for database
+  courseId: z.string().uuid().optional().nullable(), // Optional for chat-created events without a course
   source: z.nativeEnum(EventSource).optional().default(EventSource.ALMANAC),
   googleEventId: z.string().optional().nullable(),
 });

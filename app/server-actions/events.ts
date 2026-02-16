@@ -29,13 +29,15 @@ export async function createEvent(
 
     const data = parsed.data;
 
-    // Verify course ownership
-    const course = await prisma.course.findFirst({
-      where: { id: data.courseId, userId },
-    });
+    // Verify course ownership (only if courseId is provided)
+    if (data.courseId) {
+      const course = await prisma.course.findFirst({
+        where: { id: data.courseId, userId },
+      });
 
-    if (!course) {
-      return { ok: false, error: "Course not found or access denied" };
+      if (!course) {
+        return { ok: false, error: "Course not found or access denied" };
+      }
     }
 
     // Set editable based on source
@@ -48,7 +50,7 @@ export async function createEvent(
         time: data.time || null,
         type: data.type,
         description: data.description,
-        courseId: data.courseId,
+        courseId: data.courseId || null,
         userId,
         source: data.source || EventSource.ALMANAC,
         googleEventId: data.googleEventId || null,

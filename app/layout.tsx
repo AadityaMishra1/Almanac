@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { Providers } from "@/app/providers";
 import { Navigation } from "@/components/navigation";
-import { ChatPanel } from "@/components/chat-panel";
+import { ChatPanel } from "@/components/chat/chat-panel";
 import { ToastNotifications } from "@/components/toast-notifications";
 import { Instrument_Serif, DM_Sans } from "next/font/google";
 import "@/app/globals.css";

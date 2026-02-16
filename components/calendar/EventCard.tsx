@@ -4,6 +4,7 @@ import { format, parseISO } from 'date-fns';
 import type { UnifiedEvent, View } from './types';
 import { getEventColor, getEventIcon } from './utils';
 import { cn } from '@/lib/utils';
+import { useChatStore } from '@/lib/store';
 
 interface EventCardProps {
   event: UnifiedEvent;
@@ -15,6 +16,7 @@ interface EventCardProps {
 export function EventCard({ event, view, onClick, className }: EventCardProps) {
   const colors = getEventColor(event);
   const Icon = getEventIcon(event);
+  const isHighlighted = useChatStore((s) => s.highlightedEventIds.has(event.id));
 
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -46,6 +48,7 @@ export function EventCard({ event, view, onClick, className }: EventCardProps) {
         'hover:scale-[1.01] active:scale-[0.98]',
         'focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-1',
         isCompact ? 'h-6 px-1.5 py-0.5' : 'px-2 py-2',
+        isHighlighted && 'animate-pulse-highlight ring-2 ring-brand-500/50',
         className
       )}
       aria-label={`${event.title} - ${event.assignment_type || 'event'}`}

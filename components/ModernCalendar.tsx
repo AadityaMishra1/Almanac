@@ -17,7 +17,7 @@ import { X, Calendar as CalendarIcon } from 'lucide-react';
 import api from '@/lib/api';
 import { deleteEvent } from '@/app/server-actions/events';
 import { ConfirmDeleteDialog } from '@/components/confirm-delete-dialog';
-import { useNotificationStore } from '@/lib/store';
+import { useNotificationStore, useChatStore } from '@/lib/store';
 
 import type { View, UnifiedEvent } from './calendar/types';
 import { getEventColor, getEventIcon } from './calendar/utils';
@@ -47,6 +47,15 @@ export default function ModernCalendar({ refreshKey }: ModernCalendarProps = {})
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const { addNotification } = useNotificationStore();
+  const highlightedEventIds = useChatStore((s) => s.highlightedEventIds);
+  const clearHighlights = useChatStore((s) => s.clearHighlights);
+
+  // Auto-clear highlights after 3 seconds
+  useEffect(() => {
+    if (highlightedEventIds.size === 0) return;
+    const timer = setTimeout(() => clearHighlights(), 3000);
+    return () => clearTimeout(timer);
+  }, [highlightedEventIds, clearHighlights]);
 
   // Mobile detection
   useEffect(() => {
@@ -59,7 +68,7 @@ export default function ModernCalendar({ refreshKey }: ModernCalendarProps = {})
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
-      if (selectedEvent || expandedDate || e.target instanceof HTMLInputElement) return;
+      if (selectedEvent || expandedDate || e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
       switch (e.key) {
         case 'ArrowLeft': navigate('prev'); break;
         case 'ArrowRight': navigate('next'); break;

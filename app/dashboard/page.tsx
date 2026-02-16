@@ -40,8 +40,10 @@ function DashboardContent() {
   useEffect(() => { loadCourses(); }, [loadCourses]);
 
   // Refresh calendar when chat actions modify events
+  const lastProcessedVersion = useRef(0);
   useEffect(() => {
-    if (calendarVersion > 0) {
+    if (calendarVersion > lastProcessedVersion.current) {
+      lastProcessedVersion.current = calendarVersion;
       setRefreshKey((k) => k + 1);
     }
   }, [calendarVersion]);

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signIn, signOut, useSession } from "next-auth/react";
-import { Upload, Calendar, MessageSquare } from "lucide-react";
+import { Upload, Calendar } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useChatStore } from "@/lib/store";
 
@@ -67,8 +67,7 @@ export function Navigation() {
                   : "text-[var(--text-secondary)] hover:bg-surface-secondary hover:text-[var(--text-primary)]"
               )}
             >
-              <MessageSquare className="h-4 w-4" />
-              <span className="hidden sm:inline">AI</span>
+              <span className="hidden sm:inline">Greg</span>
             </button>
           )}
 

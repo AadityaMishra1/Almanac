@@ -9,6 +9,8 @@ export interface UnifiedEvent {
   end_time: string;
   course_name?: string;
   course_code?: string;
+  course_id?: string;
+  course_color?: string | null;
   assignment_type?: string;
   is_synced_to_calendar?: boolean;
   google_event_id?: string;

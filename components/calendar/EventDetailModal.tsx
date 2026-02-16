@@ -23,6 +23,12 @@ export function EventDetailModal({ event, onClose, onDelete }: EventDetailModalP
     if (colors.border.includes('teal')) return '#5eead4';
     if (colors.border.includes('violet')) return '#a78bfa';
     if (colors.border.includes('emerald')) return '#6ee7b7';
+    if (colors.border.includes('rose')) return '#fb7185';
+    if (colors.border.includes('amber')) return '#fbbf24';
+    if (colors.border.includes('cyan')) return '#22d3ee';
+    if (colors.border.includes('fuchsia')) return '#e879f9';
+    if (colors.border.includes('orange')) return '#fb923c';
+    if (colors.border.includes('indigo')) return '#818cf8';
     return '#9c998f';
   };
 

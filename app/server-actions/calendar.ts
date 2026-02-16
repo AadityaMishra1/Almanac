@@ -79,7 +79,7 @@ export async function syncEventsToCalendar(
           description: [
             event.type,
             event.description,
-            `Course: ${event.course.name} (${event.course.code})`,
+            event.course ? `Course: ${event.course.name} (${event.course.code})` : "",
           ].filter(Boolean).join("\n\n"),
           start: { date: startDate },
           end: { date: endDate },

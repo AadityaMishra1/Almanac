@@ -88,47 +88,56 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
 }));
 
 // ─── Chat Store ─────────────────────────────────────────────────────────────
+// Messages and loading state are now managed by the AI SDK's useChat hook.
+// This store only tracks panel open/close and calendar refresh versioning.
 
-interface ChatMessage {
-  id: string;
-  role: "user" | "assistant";
-  content: string;
-  createdAt: string;
-  actionsPerformed?: boolean;
-}
+type PanelSize = 'compact' | 'expanded' | 'fullscreen';
 
 interface ChatState {
-  messages: ChatMessage[];
   isOpen: boolean;
-  isLoading: boolean;
+  panelSize: PanelSize;
   calendarVersion: number;
-  addMessage: (message: Omit<ChatMessage, "id" | "createdAt">) => void;
-  setLoading: (loading: boolean) => void;
+  highlightedEventIds: Set<string>;
   toggleChat: () => void;
   setOpen: (open: boolean) => void;
-  clearMessages: () => void;
+  setPanelSize: (size: PanelSize) => void;
+  cyclePanelSize: () => void;
   bumpCalendarVersion: () => void;
+  highlightEvents: (ids: string[]) => void;
+  clearHighlights: () => void;
 }
 
 export const useChatStore = create<ChatState>((set) => ({
-  messages: [],
   isOpen: false,
-  isLoading: false,
+  panelSize: 'compact',
   calendarVersion: 0,
-  addMessage: (message) => {
-    const newMessage: ChatMessage = {
-      ...message,
-      id: Date.now().toString() + Math.random().toString(36).slice(2, 6),
-      createdAt: new Date().toISOString(),
-    };
+  highlightedEventIds: new Set(),
+  toggleChat: () =>
     set((state) => ({
-      messages: [...state.messages, newMessage],
-    }));
+      isOpen: !state.isOpen,
+      // Reset to compact when closing via toggle
+      ...(!state.isOpen ? {} : { panelSize: 'compact' as PanelSize }),
+    })),
+  setOpen: (open) => {
+    if (open) {
+      set({ isOpen: true });
+    } else {
+      // Reset to compact on close
+      set({ isOpen: false, panelSize: 'compact' });
+    }
   },
-  setLoading: (loading) => set({ isLoading: loading }),
-  toggleChat: () => set((state) => ({ isOpen: !state.isOpen })),
-  setOpen: (open) => set({ isOpen: open }),
-  clearMessages: () => set({ messages: [] }),
+  setPanelSize: (size) => set({ panelSize: size }),
+  cyclePanelSize: () =>
+    set((state) => {
+      const cycle: Record<PanelSize, PanelSize> = {
+        compact: 'expanded',
+        expanded: 'fullscreen',
+        fullscreen: 'compact',
+      };
+      return { panelSize: cycle[state.panelSize] };
+    }),
   bumpCalendarVersion: () => set((state) => ({ calendarVersion: state.calendarVersion + 1 })),
+  highlightEvents: (ids) => set({ highlightedEventIds: new Set(ids) }),
+  clearHighlights: () => set({ highlightedEventIds: new Set() }),
 }));
 

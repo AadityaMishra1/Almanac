@@ -79,8 +79,8 @@ model Event {
   user     User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   // Relationships
-  courseId String
-  course   Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  courseId String?
+  course   Course? @relation(fields: [courseId], references: [id], onDelete: Cascade)
 
   // Audit fields
   createdAt DateTime @default(now())

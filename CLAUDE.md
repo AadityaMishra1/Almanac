@@ -48,6 +48,7 @@ npx shadcn@latest add <component> --yes  # add UI primitives
 - No `any` types — define interfaces. Validate API input with Zod.
 - All DB queries scoped by `userId` (multi-tenant)
 - Named exports for components, default export only for page.tsx
+- **CRITICAL**: After ANY change to `prisma/schema.prisma`, you MUST run `npx prisma generate` and `npx prisma db push` then restart the dev server. Failing to do this will cause silent query failures.
 
 ## Frontend Design
 
