@@ -126,8 +126,8 @@ export const authOptions: NextAuthOptions = {
         // Don't set id - this will cause auth checks to fail gracefully
       }
 
-      // Add accessToken and error
-      session.accessToken = token.accessToken as string;
+      // Expose boolean flag (not the raw token) to the client
+      session.hasCalendarAccess = !!token.accessToken;
       session.error = token.error as "RefreshAccessTokenError" | undefined;
 
       return session;

@@ -522,10 +522,10 @@ export default function TermsPage() {
         <p>
           If you have a dispute with Almanac, you agree to first contact us at{" "}
           <a
-            href="mailto:knowl3dgehubemail@gmail.com"
+            href="mailto:almanac123@googlegroups.com"
             className="text-[var(--brand-600)] hover:underline"
           >
-            knowl3dgehubemail@gmail.com
+            almanac123@googlegroups.com
           </a>{" "}
           to attempt to resolve the dispute informally.
         </p>
@@ -604,10 +604,10 @@ export default function TermsPage() {
           <p>
             <strong>Email:</strong>{" "}
             <a
-              href="mailto:knowl3dgehubemail@gmail.com"
+              href="mailto:almanac123@googlegroups.com"
               className="text-[var(--brand-600)] hover:underline"
             >
-              knowl3dgehubemail@gmail.com
+              almanac123@googlegroups.com
             </a>
           </p>
           <p className="mt-2">

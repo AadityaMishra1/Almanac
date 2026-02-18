@@ -78,6 +78,17 @@ export const CreateEventSchema = z.object({
 
 export type CreateEventInput = z.infer<typeof CreateEventSchema>;
 
+export const UpdateEventSchema = z.object({
+  title: z.string().min(1).optional(),
+  date: z.string().min(1).optional(),
+  time: z.string().nullable().optional(),
+  type: z.string().min(1).optional(),
+  description: z.string().optional(),
+  googleEventId: z.string().nullable().optional(),
+});
+
+export type UpdateEventInput = z.infer<typeof UpdateEventSchema>;
+
 /**
  * Convert SyllabusEvent (from PDF parsing) to CreateEventInput (for database).
  * Requires courseId to associate event with course.

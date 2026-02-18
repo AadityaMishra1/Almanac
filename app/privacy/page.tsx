@@ -350,10 +350,10 @@ export default function PrivacyPage() {
           To exercise any of these rights or if you have privacy concerns,
           contact us at:{" "}
           <a
-            href="mailto:knowl3dgehubemail@gmail.com"
+            href="mailto:almanac123@googlegroups.com"
             className="text-[var(--brand-600)] hover:underline"
           >
-            knowl3dgehubemail@gmail.com
+            almanac123@googlegroups.com
           </a>
         </p>
       </section>
@@ -407,10 +407,10 @@ export default function PrivacyPage() {
           believe we have collected information from a minor, please contact us
           at{" "}
           <a
-            href="mailto:knowl3dgehubemail@gmail.com"
+            href="mailto:almanac123@googlegroups.com"
             className="text-[var(--brand-600)] hover:underline"
           >
-            knowl3dgehubemail@gmail.com
+            almanac123@googlegroups.com
           </a>
           .
         </p>
@@ -510,10 +510,10 @@ export default function PrivacyPage() {
           <p>
             <strong>Email:</strong>{" "}
             <a
-              href="mailto:knowl3dgehubemail@gmail.com"
+              href="mailto:almanac123@googlegroups.com"
               className="text-[var(--brand-600)] hover:underline"
             >
-              knowl3dgehubemail@gmail.com
+              almanac123@googlegroups.com
             </a>
           </p>
           <p className="mt-2">

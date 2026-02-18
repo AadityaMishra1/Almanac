@@ -6,6 +6,7 @@ import type { Course } from "@prisma/client";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { removeFromGoogleCalendar } from "@/app/server-actions/calendar";
+import { getGoogleAccessTokenForUser } from "@/lib/google";
 
 const CreateCourseSchema = z.object({
   code: z.string().min(1),
@@ -121,10 +122,13 @@ export async function deleteCourse(
     // Batch-remove from Google Calendar
     let googleRemoved = 0;
     let googleFailed = 0;
-    if (syncedEvents.length > 0 && session.accessToken) {
+    const accessToken = syncedEvents.length > 0
+      ? await getGoogleAccessTokenForUser(userId)
+      : null;
+    if (syncedEvents.length > 0 && accessToken) {
       const results = await Promise.allSettled(
         syncedEvents.map((evt) =>
-          removeFromGoogleCalendar(session.accessToken!, evt.googleEventId!)
+          removeFromGoogleCalendar(accessToken, evt.googleEventId!)
         )
       );
       for (const result of results) {

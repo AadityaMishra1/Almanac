@@ -1,12 +1,13 @@
 "use server";
 
 import { prisma } from "@/lib/db";
-import { CreateEventSchema, canModifyEvent } from "@/lib/events";
+import { CreateEventSchema, UpdateEventSchema, canModifyEvent } from "@/lib/events";
 import { EventSource } from "@prisma/client";
 import type { Event } from "@prisma/client";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { removeFromGoogleCalendar } from "@/app/server-actions/calendar";
+import { getGoogleAccessTokenForUser } from "@/lib/google";
 
 /**
  * Create a new event in the database.
@@ -73,19 +74,17 @@ export async function createEvent(
  */
 export async function updateEvent(
   eventId: string,
-  updates: Partial<{
-    title: string;
-    date: string;
-    time: string | null;
-    type: string;
-    description: string;
-    googleEventId: string | null;
-  }>
+  updates: unknown
 ): Promise<{ ok: true; event: Event } | { ok: false; error: string }> {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
       return { ok: false, error: "Not authenticated" };
+    }
+
+    const parsed = UpdateEventSchema.safeParse(updates);
+    if (!parsed.success) {
+      return { ok: false, error: "Invalid update data: " + parsed.error.message };
     }
 
     const userId = session.user.id;
@@ -109,7 +108,7 @@ export async function updateEvent(
     // Permission check passed, proceed with update
     const event = await prisma.event.update({
       where: { id: eventId },
-      data: updates,
+      data: parsed.data,
       include: {
         course: true,
       },
@@ -158,9 +157,12 @@ export async function deleteEvent(
 
     // Remove from Google Calendar if synced
     let googleSyncResult: "removed" | "not_synced" | "failed" = "not_synced";
-    if (existing.googleEventId && session.accessToken) {
+    const accessToken = existing.googleEventId
+      ? await getGoogleAccessTokenForUser(userId)
+      : null;
+    if (existing.googleEventId && accessToken) {
       const gcResult = await removeFromGoogleCalendar(
-        session.accessToken,
+        accessToken,
         existing.googleEventId
       );
       googleSyncResult = gcResult.ok ? "removed" : "failed";
@@ -213,10 +215,13 @@ export async function deleteEventsByCourse(
     // Batch-remove from Google Calendar
     let googleRemoved = 0;
     let googleFailed = 0;
-    if (syncedEvents.length > 0 && session.accessToken) {
+    const accessTokenForBatch = syncedEvents.length > 0
+      ? await getGoogleAccessTokenForUser(userId)
+      : null;
+    if (syncedEvents.length > 0 && accessTokenForBatch) {
       const results = await Promise.allSettled(
         syncedEvents.map((evt) =>
-          removeFromGoogleCalendar(session.accessToken!, evt.googleEventId!)
+          removeFromGoogleCalendar(accessTokenForBatch, evt.googleEventId!)
         )
       );
       for (const result of results) {

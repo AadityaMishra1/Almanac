@@ -2,7 +2,7 @@
 
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { getCalendarClient } from "@/lib/google";
+import { getCalendarClient, getGoogleAccessTokenForUser } from "@/lib/google";
 import { prisma } from "@/lib/db";
 import { updateEvent } from "@/app/server-actions/events";
 
@@ -37,16 +37,43 @@ export async function removeFromGoogleCalendar(
   }
 }
 
+export async function getUnsyncedEventIds(): Promise<
+  { ok: true; eventIds: string[]; count: number } | { ok: false; error: string }
+> {
+  try {
+    const session = await getServerSession(authOptions);
+    const userId = session?.user?.id;
+    if (!userId) return { ok: false, error: "Not authenticated" };
+
+    const events = await prisma.event.findMany({
+      where: {
+        userId,
+        source: "ALMANAC",
+        googleEventId: null,
+      },
+      select: { id: true },
+    });
+
+    return { ok: true, eventIds: events.map((e) => e.id), count: events.length };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Failed to fetch unsynced events." };
+  }
+}
+
 export async function syncEventsToCalendar(
   eventIds: string[]
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   try {
     const session = await getServerSession(authOptions);
-    const accessToken = session?.accessToken;
     const userId = session?.user?.id;
 
-    if (!accessToken || !userId) {
+    if (!userId) {
       return { ok: false, error: "Not authenticated" };
+    }
+
+    const accessToken = await getGoogleAccessTokenForUser(userId);
+    if (!accessToken) {
+      return { ok: false, error: "No Google Calendar access. Please re-authenticate." };
     }
 
     // Fetch events from database by IDs (scoped to user)

@@ -13,7 +13,7 @@ import {
   startOfDay, endOfDay,
   getHours, getMinutes,
 } from 'date-fns';
-import { X, Calendar as CalendarIcon } from 'lucide-react';
+import { X, Calendar as CalendarIcon, Plus } from 'lucide-react';
 import api from '@/lib/api';
 import { deleteEvent } from '@/app/server-actions/events';
 import { ConfirmDeleteDialog } from '@/components/confirm-delete-dialog';
@@ -33,9 +33,10 @@ const HOURS = Array.from({ length: 24 }, (_, i) => i);
 
 interface ModernCalendarProps {
   refreshKey?: number;
+  onCreateEvent?: (date: Date) => void;
 }
 
-export default function ModernCalendar({ refreshKey }: ModernCalendarProps = {}) {
+export default function ModernCalendar({ refreshKey, onCreateEvent }: ModernCalendarProps = {}) {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [view, setView] = useState<View>('month');
   const [events, setEvents] = useState<UnifiedEvent[]>([]);
@@ -255,7 +256,7 @@ export default function ModernCalendar({ refreshKey }: ModernCalendarProps = {})
               `}
               onClick={() => handleDateClick(day)}
             >
-              <div className="p-2">
+              <div className="p-2 flex items-start justify-between">
                 <div
                   className={`
                     inline-flex items-center justify-center w-7 h-7 rounded-full text-sm font-medium transition-colors duration-150
@@ -267,6 +268,15 @@ export default function ModernCalendar({ refreshKey }: ModernCalendarProps = {})
                 >
                   {format(day, 'd')}
                 </div>
+                {onCreateEvent && isCurrentMonth && (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); onCreateEvent(day); }}
+                    className="w-6 h-6 rounded-md flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-150 hover:bg-brand-100 dark:hover:bg-brand-900/30 text-[var(--text-tertiary)] hover:text-brand-500"
+                    aria-label={`Create event on ${format(day, 'MMMM d')}`}
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                  </button>
+                )}
               </div>
 
               <div className="px-1.5 pb-1.5 space-y-0.5">

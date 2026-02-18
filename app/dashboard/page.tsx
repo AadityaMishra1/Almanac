@@ -6,9 +6,10 @@ import { useSearchParams } from 'next/navigation';
 import ModernCalendar from '@/components/ModernCalendar';
 import { CreateEventModal } from '@/components/create-event-modal';
 import { useNotificationStore, useChatStore } from '@/lib/store';
-import { Upload, Plus, GraduationCap, Trash2, ChevronDown, X } from 'lucide-react';
+import { Upload, Plus, GraduationCap, Trash2, ChevronDown, X, CalendarSync, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { getCourses, deleteCourse } from '@/app/server-actions/courses';
+import { syncEventsToCalendar, getUnsyncedEventIds } from '@/app/server-actions/calendar';
 import { ConfirmDeleteDialog } from '@/components/confirm-delete-dialog';
 import type { Course } from '@prisma/client';
 import { cn } from '@/lib/utils';
@@ -25,10 +26,19 @@ function DashboardContent() {
   const [deleteTargetCourse, setDeleteTargetCourse] = useState<Course | null>(null);
   const [isDeletingCourse, setIsDeletingCourse] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const [createEventDate, setCreateEventDate] = useState<string | undefined>();
+  const [unsyncedCount, setUnsyncedCount] = useState(0);
+  const [isSyncing, setIsSyncing] = useState(false);
+
+  const loadUnsyncedCount = useCallback(async () => {
+    const result = await getUnsyncedEventIds();
+    if (result.ok) setUnsyncedCount(result.count);
+  }, []);
 
   const handleEventCreated = useCallback(() => {
     setRefreshKey((k) => k + 1);
-  }, []);
+    loadUnsyncedCount();
+  }, [loadUnsyncedCount]);
 
   const loadCourses = useCallback(async () => {
     const result = await getCourses();
@@ -37,7 +47,7 @@ function DashboardContent() {
     }
   }, []);
 
-  useEffect(() => { loadCourses(); }, [loadCourses]);
+  useEffect(() => { loadCourses(); loadUnsyncedCount(); }, [loadCourses, loadUnsyncedCount]);
 
   // Refresh calendar when chat actions modify events
   const lastProcessedVersion = useRef(0);
@@ -45,8 +55,9 @@ function DashboardContent() {
     if (calendarVersion > lastProcessedVersion.current) {
       lastProcessedVersion.current = calendarVersion;
       setRefreshKey((k) => k + 1);
+      loadUnsyncedCount();
     }
-  }, [calendarVersion]);
+  }, [calendarVersion, loadUnsyncedCount]);
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -94,6 +105,38 @@ function DashboardContent() {
     }
   }
 
+  const handleCreateEventForDate = useCallback((date: Date) => {
+    setCreateEventDate(format(date, 'yyyy-MM-dd'));
+    setShowCreateEvent(true);
+  }, []);
+
+  const handleSyncAll = useCallback(async () => {
+    setIsSyncing(true);
+    try {
+      const idsResult = await getUnsyncedEventIds();
+      if (!idsResult.ok) {
+        addNotification({ message: idsResult.error, type: 'error' });
+        return;
+      }
+      if (idsResult.count === 0) return;
+
+      const syncResult = await syncEventsToCalendar(idsResult.eventIds);
+      if (!syncResult.ok) {
+        addNotification({ message: syncResult.error, type: 'error' });
+        return;
+      }
+      addNotification({
+        message: `Synced ${idsResult.count} event${idsResult.count !== 1 ? 's' : ''} to Google Calendar`,
+        type: 'success',
+      });
+      setUnsyncedCount(0);
+    } catch {
+      addNotification({ message: 'Sync failed. Please try again.', type: 'error' });
+    } finally {
+      setIsSyncing(false);
+    }
+  }, [addNotification]);
+
   useEffect(() => {
     if (searchParams?.get('calendar_connected') === 'true') {
       addNotification({
@@ -113,18 +156,63 @@ function DashboardContent() {
       {/* Toolbar — Cal.com inspired minimal top bar */}
       <div className="border-b border-border-subtle bg-surface/80 backdrop-blur-sm sticky top-0 z-40">
         <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          {/* Date display — extreme typography contrast */}
-          <div className="flex flex-col">
-            <div className="text-xs font-medium text-[var(--text-tertiary)] uppercase tracking-wider">
-              {dayName}
-            </div>
-            <div className="text-2xl font-bold text-[var(--text-primary)] tracking-tight">
-              {dateDisplay}
+          {/* Left group — New Event CTA + date display */}
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => setShowCreateEvent(true)}
+              className="group inline-flex items-center gap-2 px-4 py-2.5 rounded-lg
+                bg-brand-500 text-white font-semibold text-sm
+                hover:bg-brand-600 active:bg-brand-700
+                focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2
+                transition-colors duration-150
+                shadow-sm hover:shadow-md
+                min-h-[44px]"
+            >
+              <Plus className="w-4 h-4 group-hover:scale-110 transition-transform duration-150" />
+              <span className="hidden sm:inline">New Event</span>
+              <span className="sm:hidden">New</span>
+            </button>
+
+            <div className="w-px h-8 bg-border-subtle hidden sm:block" />
+
+            <div className="flex-col hidden sm:flex">
+              <div className="text-xs font-medium text-[var(--text-tertiary)] uppercase tracking-wider">
+                {dayName}
+              </div>
+              <div className="text-2xl font-bold text-[var(--text-primary)] tracking-tight">
+                {dateDisplay}
+              </div>
             </div>
           </div>
 
-          {/* Actions */}
+          {/* Right group — Sync + Courses + Upload */}
           <div className="flex items-center gap-3">
+            {/* Sync to Google Calendar */}
+            <button
+              onClick={handleSyncAll}
+              disabled={isSyncing || unsyncedCount === 0}
+              className={cn(
+                'relative inline-flex items-center justify-center w-11 h-11 rounded-lg text-sm font-medium',
+                'border border-border-subtle bg-surface hover:bg-surface-secondary',
+                'text-[var(--text-secondary)] transition-colors duration-150',
+                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2',
+                'disabled:opacity-50 disabled:cursor-not-allowed'
+              )}
+              aria-label={unsyncedCount > 0 ? `Sync ${unsyncedCount} events to Google Calendar` : 'All events synced'}
+              title={unsyncedCount > 0 ? `${unsyncedCount} unsynced event${unsyncedCount !== 1 ? 's' : ''}` : 'All events synced'}
+            >
+              {isSyncing ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <CalendarSync className="w-4 h-4" />
+              )}
+              {unsyncedCount > 0 && !isSyncing && (
+                <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] rounded-full bg-brand-500 text-white text-[10px] font-bold flex items-center justify-center px-1">
+                  {unsyncedCount}
+                </span>
+              )}
+            </button>
+
             {/* Courses dropdown */}
             <div className="relative" ref={dropdownRef}>
               <button
@@ -215,27 +303,13 @@ function DashboardContent() {
               )}
             </div>
 
-            <button
-              onClick={() => setShowCreateEvent(true)}
-              className="group inline-flex items-center gap-2 px-4 py-2.5 rounded-lg
-                border border-border text-[var(--text-primary)] font-semibold text-sm bg-surface
-                hover:bg-surface-secondary active:bg-surface-tertiary
-                focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2
-                transition-colors duration-150
-                min-h-[44px]"
-            >
-              <Plus className="w-4 h-4 group-hover:scale-110 transition-transform duration-150" />
-              <span className="hidden sm:inline">New Event</span>
-              <span className="sm:hidden">New</span>
-            </button>
             <Link
               href="/"
               className="group inline-flex items-center gap-2.5 px-4 py-2.5 rounded-lg
-                bg-brand-500 text-white font-semibold text-sm
-                hover:bg-brand-600 active:bg-brand-700
+                border border-border-subtle bg-surface text-[var(--text-primary)] font-semibold text-sm
+                hover:bg-surface-secondary active:bg-surface-tertiary
                 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2
                 transition-colors duration-150
-                shadow-sm hover:shadow-md
                 min-h-[44px]"
             >
               <Upload className="w-4 h-4 group-hover:scale-110 transition-transform duration-150" />
@@ -251,13 +325,17 @@ function DashboardContent() {
         className="flex-1 max-w-[1600px] mx-auto w-full px-4 sm:px-6 lg:px-8 py-6 sm:py-8"
         style={{ animationDelay: '100ms' }}
       >
-        <ModernCalendar refreshKey={refreshKey} />
+        <ModernCalendar refreshKey={refreshKey} onCreateEvent={handleCreateEventForDate} />
       </div>
 
       <CreateEventModal
         open={showCreateEvent}
-        onOpenChange={setShowCreateEvent}
+        onOpenChange={(open) => {
+          setShowCreateEvent(open);
+          if (!open) setCreateEventDate(undefined);
+        }}
         onCreated={handleEventCreated}
+        initialDate={createEventDate}
       />
 
       <ConfirmDeleteDialog

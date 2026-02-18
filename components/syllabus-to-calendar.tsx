@@ -213,11 +213,11 @@ export function SyllabusToCalendar() {
               </span>
               <button
                 onClick={handleSync}
-                disabled={!selectedCount || isSyncing || !session?.accessToken}
+                disabled={!selectedCount || isSyncing || !session?.hasCalendarAccess}
                 className="rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-medium text-white transition-all duration-150 hover:bg-brand-700 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2"
               >
                 {isSyncing && <Loader2 className="h-4 w-4 animate-spin" />}
-                {session?.accessToken ? (isSyncing ? "Syncing..." : "Sync to Google Calendar") : "Sign in to sync"}
+                {session?.hasCalendarAccess ? (isSyncing ? "Syncing..." : "Sync to Google Calendar") : "Sign in to sync"}
               </button>
             </div>
           </div>

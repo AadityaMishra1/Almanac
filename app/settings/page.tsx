@@ -277,7 +277,7 @@ export default function SettingsPage() {
             </a>{" "}
             or{" "}
             <a
-              href="mailto:knowl3dgehubemail@gmail.com"
+              href="mailto:almanac123@googlegroups.com"
               className="text-[var(--brand-600)] hover:underline"
             >
               contact us

@@ -62,7 +62,7 @@ export function LegalPageLayout({
                 Terms of Service
               </Link>
               <a
-                href="mailto:knowl3dgehubemail@gmail.com"
+                href="mailto:almanac123@googlegroups.com"
                 className="hover:text-[var(--text-primary)] transition-colors duration-150"
               >
                 Contact

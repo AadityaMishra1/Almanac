@@ -1,5 +1,6 @@
 import type { JWT } from "next-auth/jwt";
 import { google } from "googleapis";
+import { prisma } from "@/lib/db";
 
 export async function refreshGoogleAccessToken(token: JWT): Promise<JWT> {
   try {
@@ -37,5 +38,19 @@ export function getCalendarClient(accessToken: string) {
   const auth = new google.auth.OAuth2();
   auth.setCredentials({ access_token: accessToken });
   return google.calendar({ version: "v3", auth });
+}
+
+/**
+ * Fetch the Google access token for a user from the database.
+ * Used by server actions instead of exposing the token via the session.
+ */
+export async function getGoogleAccessTokenForUser(
+  userId: string
+): Promise<string | null> {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { googleAccessToken: true },
+  });
+  return user?.googleAccessToken ?? null;
 }
 

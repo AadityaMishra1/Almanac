@@ -34,6 +34,7 @@ interface CreateEventModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onCreated?: () => void;
+  initialDate?: string;
 }
 
 const EVENT_TYPES = [
@@ -50,6 +51,7 @@ export function CreateEventModal({
   open,
   onOpenChange,
   onCreated,
+  initialDate,
 }: CreateEventModalProps) {
   const addNotification = useNotificationStore((s) => s.addNotification);
 
@@ -65,6 +67,13 @@ export function CreateEventModal({
   const [submitting, setSubmitting] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [error, setError] = useState("");
+
+  // Pre-fill date when opened with initialDate
+  useEffect(() => {
+    if (open && initialDate) {
+      setDate(initialDate);
+    }
+  }, [open, initialDate]);
 
   useEffect(() => {
     if (!open) return;
