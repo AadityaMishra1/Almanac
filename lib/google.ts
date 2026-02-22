@@ -124,7 +124,17 @@ export async function getOrCreateCourseCalendar(
 
   // Create a new secondary calendar
   try {
-    const calendarName = `${course.code} - ${course.name}`;
+    // Format code for a clean Google Calendar name:
+    // Short codes like "ECE 309" stay uppercase; long slugs like
+    // "SIGNALS-&-SYSTEMS" get title-cased to "Signals & Systems"
+    const prettyCode =
+      course.code.length <= 10
+        ? course.code
+        : course.code
+            .toLowerCase()
+            .replace(/[-_]/g, " ")
+            .replace(/\b\w/g, (c) => c.toUpperCase());
+    const calendarName = `${prettyCode} — ${course.name}`;
     const created = await calendar.calendars.insert({
       requestBody: {
         summary: calendarName,
