@@ -1,5 +1,6 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { checkRateLimit } from "@/lib/rate-limit";
 import { prisma } from "@/lib/db";
 import { NextResponse } from "next/server";
 
@@ -18,9 +19,13 @@ export async function GET() {
     if (!session?.user?.id) {
       return NextResponse.json(
         { error: "Unauthorized - please sign in" },
-        { status: 401 }
+        { status: 401 },
       );
     }
+
+    // Rate limit: 3 req/hour for data export
+    const rateLimited = await checkRateLimit("accountExport", session.user.id);
+    if (rateLimited) return rateLimited;
 
     const userId = session.user.id;
 
@@ -101,7 +106,7 @@ export async function GET() {
     console.error("Data export error:", error);
     return NextResponse.json(
       { error: "Failed to export data. Please try again or contact support." },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

@@ -70,10 +70,10 @@ export async function createEvent(
     });
 
     return { ok: true, event };
-  } catch (e) {
+  } catch {
     return {
       ok: false,
-      error: e instanceof Error ? e.message : "Failed to create event.",
+      error: "Failed to create event.",
     };
   }
 }
@@ -119,20 +119,27 @@ export async function updateEvent(
       };
     }
 
-    // Permission check passed, proceed with update
-    const event = await prisma.event.update({
-      where: { id: eventId },
+    // Atomic ownership check + update (no TOCTOU gap)
+    const updated = await prisma.event.updateMany({
+      where: { id: eventId, userId },
       data: parsed.data,
-      include: {
-        course: true,
-      },
+    });
+
+    if (updated.count === 0) {
+      return { ok: false, error: "Event not found or access denied" };
+    }
+
+    // Fetch the updated event for return value
+    const event = await prisma.event.findUniqueOrThrow({
+      where: { id: eventId },
+      include: { course: true },
     });
 
     return { ok: true, event };
-  } catch (e) {
+  } catch {
     return {
       ok: false,
-      error: e instanceof Error ? e.message : "Failed to update event.",
+      error: "Failed to update event.",
     };
   }
 }
@@ -187,16 +194,20 @@ export async function deleteEvent(
       googleSyncResult = gcResult.ok ? "removed" : "failed";
     }
 
-    // Always proceed with DB delete regardless of Google Calendar result
-    await prisma.event.delete({
-      where: { id: eventId },
+    // Atomic ownership check + delete (no TOCTOU gap)
+    const deleted = await prisma.event.deleteMany({
+      where: { id: eventId, userId },
     });
 
+    if (deleted.count === 0) {
+      return { ok: false, error: "Event not found or access denied" };
+    }
+
     return { ok: true, googleSyncResult };
-  } catch (e) {
+  } catch {
     return {
       ok: false,
-      error: e instanceof Error ? e.message : "Failed to delete event.",
+      error: "Failed to delete event.",
     };
   }
 }
@@ -237,10 +248,10 @@ export async function getEvents(filters?: {
     });
 
     return { ok: true, events };
-  } catch (e) {
+  } catch {
     return {
       ok: false,
-      error: e instanceof Error ? e.message : "Failed to fetch events.",
+      error: "Failed to fetch events.",
     };
   }
 }

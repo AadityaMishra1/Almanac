@@ -1,5 +1,6 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { checkRateLimit } from "@/lib/rate-limit";
 import { prisma } from "@/lib/db";
 import { NextResponse } from "next/server";
 
@@ -18,27 +19,22 @@ export async function DELETE() {
     if (!session?.user?.id) {
       return NextResponse.json(
         { error: "Unauthorized - please sign in" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
+    // Rate limit: 1 req/hour for account deletion
+    const rateLimited = await checkRateLimit("accountDelete", session.user.id);
+    if (rateLimited) return rateLimited;
+
     const userId = session.user.id;
 
-    // Delete all user data in the correct order (respecting foreign key constraints)
-    // 1. Delete events (references userId and courseId)
-    await prisma.event.deleteMany({
-      where: { userId },
-    });
-
-    // 2. Delete courses (references userId)
-    await prisma.course.deleteMany({
-      where: { userId },
-    });
-
-    // 3. Delete user account (includes OAuth tokens)
-    await prisma.user.delete({
-      where: { id: userId },
-    });
+    // Atomic deletion: all-or-nothing to prevent partial state on crash
+    await prisma.$transaction([
+      prisma.event.deleteMany({ where: { userId } }),
+      prisma.course.deleteMany({ where: { userId } }),
+      prisma.user.delete({ where: { id: userId } }),
+    ]);
 
     return NextResponse.json({
       success: true,
@@ -47,8 +43,10 @@ export async function DELETE() {
   } catch (error) {
     console.error("Account deletion error:", error);
     return NextResponse.json(
-      { error: "Failed to delete account. Please try again or contact support." },
-      { status: 500 }
+      {
+        error: "Failed to delete account. Please try again or contact support.",
+      },
+      { status: 500 },
     );
   }
 }

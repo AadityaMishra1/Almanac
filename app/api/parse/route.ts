@@ -1,10 +1,15 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { checkRateLimit } from "@/lib/rate-limit";
 import { parseSyllabusPdfToText } from "@/lib/pdf";
 import { extractEventsFromSyllabusText } from "@/lib/groq";
 import { extractEventsFromPdfWithVision } from "@/lib/gemini";
-import { normalizeAndValidateEvents, SyllabusEvent, syllabusEventToCreateInput } from "@/lib/events";
+import {
+  normalizeAndValidateEvents,
+  SyllabusEvent,
+  syllabusEventToCreateInput,
+} from "@/lib/events";
 import { getOrCreateCourse } from "@/app/server-actions/courses";
 import { createEvent } from "@/app/server-actions/events";
 
@@ -17,30 +22,57 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    // Rate limit: 5 req/min for PDF uploads (expensive LLM calls)
+    const rateLimited = await checkRateLimit("parse", session.user.id);
+    if (rateLimited) return rateLimited;
+
     const formData = await request.formData();
     const file = formData.get("file");
 
     if (!file || !(file instanceof File)) {
-      return NextResponse.json({ error: 'Missing PDF file field "file".' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Missing PDF file field "file".' },
+        { status: 400 },
+      );
     }
 
-    const isPdf = file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
+    const isPdf =
+      file.type === "application/pdf" ||
+      file.name.toLowerCase().endsWith(".pdf");
     if (!isPdf) {
-      return NextResponse.json({ error: "File must be a PDF." }, { status: 400 });
+      return NextResponse.json(
+        { error: "File must be a PDF." },
+        { status: 400 },
+      );
     }
 
     const buffer = Buffer.from(await file.arrayBuffer());
+
+    // Batch 2: File size limit (10MB)
+    if (buffer.length > 10 * 1024 * 1024) {
+      return NextResponse.json(
+        { error: "File too large. Maximum size is 10MB." },
+        { status: 413 },
+      );
+    }
+
+    // Batch 2: PDF magic byte validation
+    const header = buffer.toString("latin1", 0, 5);
+    if (!header.startsWith("%PDF-")) {
+      return NextResponse.json({ error: "Invalid PDF file." }, { status: 400 });
+    }
 
     // PRIMARY: Gemini Vision (handles text, scanned, and image-based PDFs)
     let events: SyllabusEvent[] | null = null;
     let usedPipeline = "none";
     try {
-      const geminiResult = await extractEventsFromPdfWithVision(buffer, file.name);
-      console.log("[parse] Gemini raw result:", JSON.stringify(geminiResult)?.slice(0, 500));
+      const geminiResult = await extractEventsFromPdfWithVision(
+        buffer,
+        file.name,
+      );
       if (geminiResult != null) {
         events = normalizeAndValidateEvents(geminiResult);
         usedPipeline = "gemini";
-        console.log(`[parse] ✅ Gemini Vision → ${events.length} events`);
       }
     } catch (geminiErr) {
       console.error("[parse] Gemini pipeline failed, falling back:", geminiErr);
@@ -49,15 +81,11 @@ export async function POST(request: Request) {
 
     // FALLBACK: pdf-parse text extraction -> Groq LLM (text-based PDFs only)
     if (!events || events.length === 0) {
-      console.log("[parse] Using fallback: pdf-parse → Groq");
       const text = await parseSyllabusPdfToText(buffer);
       const aiEvents = await extractEventsFromSyllabusText(text);
       events = normalizeAndValidateEvents(aiEvents);
       usedPipeline = "groq-fallback";
-      console.log(`[parse] ✅ Groq fallback → ${events.length} events`);
     }
-
-    console.log(`[parse] Final pipeline: ${usedPipeline}, events: ${events.map(e => `${e.title} (${e.date})`).join(", ")}`);
 
     // Get course name from form data (user provided simple text input)
     const courseName = formData.get("courseName") as string | null;
@@ -65,13 +93,13 @@ export async function POST(request: Request) {
     if (!courseName || courseName.trim().length === 0) {
       return NextResponse.json(
         { error: "Course name is required. Please provide a course name." },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     // Create course code from course name (simple approach for Phase 1)
     // Phase 2 will extract course code from PDF with LLM
-    const courseCode = courseName.trim().toUpperCase().replace(/\s+/g, '-');
+    const courseCode = courseName.trim().toUpperCase().replace(/\s+/g, "-");
     const semester = "Spring 2026"; // TODO Phase 2: Extract from PDF or add to UI input
 
     // Get or create course
@@ -84,8 +112,8 @@ export async function POST(request: Request) {
 
     if (!courseResult.ok) {
       return NextResponse.json(
-        { error: "Failed to create course: " + courseResult.error },
-        { status: 500 }
+        { error: "Failed to create course. Please try again." },
+        { status: 500 },
       );
     }
 
@@ -110,7 +138,7 @@ export async function POST(request: Request) {
       // All events failed to save
       return NextResponse.json(
         { error: "Failed to save events: " + errors.join(", ") },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -124,10 +152,10 @@ export async function POST(request: Request) {
       events, // Keep for backward compat with current UI (removed in 01-03b)
       partialErrors: errors.length > 0 ? errors : undefined,
     });
-  } catch (e) {
+  } catch {
     return NextResponse.json(
-      { error: e instanceof Error ? e.message : "Failed to parse syllabus." },
-      { status: 500 }
+      { error: "Failed to parse syllabus. Please try again." },
+      { status: 500 },
     );
   }
 }

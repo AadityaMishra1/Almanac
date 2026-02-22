@@ -31,7 +31,7 @@ export async function extractEventsFromPdfWithVision(
       .filter(Boolean)
       .join("\n");
 
-    const response = await ai.models.generateContent({
+    const geminiPromise = ai.models.generateContent({
       model: "gemini-2.5-flash",
       contents: [
         {
@@ -51,6 +51,13 @@ export async function extractEventsFromPdfWithVision(
         temperature: 0,
       },
     });
+
+    // 60s timeout for Gemini vision calls
+    const timeoutPromise = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error("Gemini request timed out")), 60_000),
+    );
+
+    const response = await Promise.race([geminiPromise, timeoutPromise]);
 
     const content = response.text ?? "";
     if (!content) return null;

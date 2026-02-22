@@ -38,12 +38,16 @@ export async function extractEventsFromSyllabusText(
     text,
   ].join("\n");
 
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 30_000);
+
   const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
     method: "POST",
     headers: {
       Authorization: `Bearer ${apiKey}`,
       "Content-Type": "application/json",
     },
+    signal: controller.signal,
     body: JSON.stringify({
       model: process.env.GROQ_MODEL ?? "llama-3.1-8b-instant",
       temperature: 0,
@@ -57,6 +61,8 @@ export async function extractEventsFromSyllabusText(
       ],
     }),
   });
+
+  clearTimeout(timeout);
 
   if (!res.ok) {
     const text = await res.text().catch(() => "");

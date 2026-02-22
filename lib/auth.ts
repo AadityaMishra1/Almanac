@@ -1,6 +1,5 @@
 import type { NextAuthOptions } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
-import { refreshGoogleAccessToken } from "@/lib/google";
 import { prisma } from "@/lib/db";
 
 const CALENDAR_SCOPE = "https://www.googleapis.com/auth/calendar";
@@ -20,8 +19,40 @@ export const authOptions: NextAuthOptions = {
       },
     }),
   ],
+  events: {
+    async signOut({ token }) {
+      // Revoke Google token and clear from database on sign-out
+      if (token?.email) {
+        const user = await prisma.user.findUnique({
+          where: { email: token.email as string },
+          select: { googleAccessToken: true, googleRefreshToken: true },
+        });
+
+        // Revoke the access token at Google (best-effort)
+        if (user?.googleAccessToken) {
+          try {
+            const revokeUrl = new URL("https://oauth2.googleapis.com/revoke");
+            revokeUrl.searchParams.set("token", user.googleAccessToken);
+            await fetch(revokeUrl, { method: "POST" });
+          } catch {
+            // Non-fatal: token will expire naturally
+          }
+        }
+
+        // Clear tokens from database
+        await prisma.user.update({
+          where: { email: token.email as string },
+          data: {
+            googleAccessToken: null,
+            googleRefreshToken: null,
+            googleTokenExpiry: null,
+          },
+        });
+      }
+    },
+  },
   callbacks: {
-    async signIn({ user, account, profile }) {
+    async signIn({ user, account }) {
       // Create or update User in database on sign-in
       if (!user.email) return false;
 
@@ -58,18 +89,13 @@ export const authOptions: NextAuthOptions = {
       }
     },
     async jwt({ token, account, user }) {
-      // Initial sign-in: store user info in JWT
+      // Initial sign-in: persist hasCalendarAccess flag
       if (account && user) {
-        token.accessToken = account.access_token;
-        token.refreshToken = account.refresh_token;
-        token.expiresAt = account.expires_at
-          ? account.expires_at * 1000
-          : undefined;
-        // DO NOT use user.id from OAuth - it's not our DB ID
+        token.hasCalendarAccess = !!account.access_token;
+        // DO NOT store accessToken/refreshToken in JWT — they stay in the DB only
       }
 
       // Always fetch userId from database using email
-      // This ensures we use our database ID, not the OAuth provider's ID
       if (token.email) {
         const dbUser = await prisma.user.findUnique({
           where: { email: token.email },
@@ -80,59 +106,21 @@ export const authOptions: NextAuthOptions = {
         }
       }
 
-      // Token still valid
-      if (token.expiresAt && Date.now() < token.expiresAt - 60_000) {
-        return token;
-      }
-
-      // No expiry set (shouldn't happen, but handle gracefully)
-      if (token.accessToken && !token.expiresAt) {
-        return token;
-      }
-
-      // Token expired - refresh it
-      if (token.refreshToken) {
-        try {
-          const refreshedToken = await refreshGoogleAccessToken(token);
-
-          // Update database with new tokens
-          if (token.email) {
-            await prisma.user.update({
-              where: { email: token.email },
-              data: {
-                googleAccessToken: refreshedToken.accessToken as string,
-                googleTokenExpiry: refreshedToken.expiresAt
-                  ? new Date(refreshedToken.expiresAt as number)
-                  : null,
-              },
-            });
-          }
-
-          return refreshedToken;
-        } catch (error) {
-          console.error("Token refresh failed:", error);
-          return { ...token, error: "RefreshAccessTokenError" as const };
-        }
-      }
-
       return token;
     },
     async session({ session, token }) {
-      // Add userId to session - but only if we successfully got it from DB
+      // Add userId to session
       if (session.user && token.userId) {
         session.user.id = token.userId as string;
       } else if (session.user && !token.userId) {
-        // Critical: userId not found in database
-        // This should not happen if signIn callback succeeded
         console.error(
           "Session error: userId not found for email:",
           token.email,
         );
-        // Don't set id - this will cause auth checks to fail gracefully
       }
 
       // Expose boolean flag (not the raw token) to the client
-      session.hasCalendarAccess = !!token.accessToken;
+      session.hasCalendarAccess = !!token.hasCalendarAccess;
       session.error = token.error as "RefreshAccessTokenError" | undefined;
 
       return session;

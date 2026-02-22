@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { checkRateLimit } from "@/lib/rate-limit";
 import { prisma } from "@/lib/db";
+import type { Prisma } from "@prisma/client";
 
 export async function GET(req: NextRequest) {
   try {
@@ -10,6 +12,11 @@ export async function GET(req: NextRequest) {
     if (!session?.user?.email) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    // Rate limit: 60 req/min for calendar events
+    const identifier = session.user.id ?? session.user.email;
+    const rateLimited = await checkRateLimit("calendarEvents", identifier);
+    if (rateLimited) return rateLimited;
 
     // Get user ID from session (select only id — avoid fetching tokens)
     const user = await prisma.user.findUnique({
@@ -27,7 +34,7 @@ export async function GET(req: NextRequest) {
     const endDate = searchParams.get("end");
 
     // Build query
-    const whereClause: any = {
+    const whereClause: Prisma.EventWhereInput = {
       userId: user.id,
     };
 
@@ -76,7 +83,7 @@ export async function GET(req: NextRequest) {
     console.error("Error fetching calendar events:", error);
     return NextResponse.json(
       { error: "Failed to fetch events" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

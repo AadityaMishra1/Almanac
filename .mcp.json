@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "redis-local": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@gongrzhe/redis-mcp-server",
+        "redis://localhost:6379"
+      ]
+    }
+  }
+}

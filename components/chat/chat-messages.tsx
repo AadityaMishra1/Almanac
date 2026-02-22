@@ -38,23 +38,32 @@ function renderMarkdown(text: string): React.ReactNode[] {
     if (!listItems) return;
     if (listItems.type === "ul") {
       nodes.push(
-        <ul key={`list-${nodes.length}`} className="my-1 list-none space-y-0.5 pl-4">
+        <ul
+          key={`list-${nodes.length}`}
+          className="my-1 list-none space-y-0.5 pl-4"
+        >
           {listItems.items.map((item, i) => (
-            <li key={i} className="relative text-sm leading-relaxed before:absolute before:-left-3 before:content-['·'] before:text-[var(--text-tertiary)]">
+            <li
+              key={i}
+              className="relative text-sm leading-relaxed before:absolute before:-left-3 before:content-['·'] before:text-[var(--text-tertiary)]"
+            >
               {item}
             </li>
           ))}
-        </ul>
+        </ul>,
       );
     } else {
       nodes.push(
-        <ol key={`list-${nodes.length}`} className="my-1 list-decimal space-y-0.5 pl-5">
+        <ol
+          key={`list-${nodes.length}`}
+          className="my-1 list-decimal space-y-0.5 pl-5"
+        >
           {listItems.items.map((item, i) => (
             <li key={i} className="text-sm leading-relaxed">
               {item}
             </li>
           ))}
-        </ol>
+        </ol>,
       );
     }
     listItems = null;
@@ -97,7 +106,7 @@ function renderMarkdown(text: string): React.ReactNode[] {
       nodes.push(
         <span key={`line-${i}`} className="block text-sm leading-relaxed">
           {renderInline(line)}
-        </span>
+        </span>,
       );
     }
   }
@@ -130,22 +139,18 @@ function renderInline(text: string): React.ReactNode {
           className="rounded bg-surface-tertiary px-1 py-0.5 text-xs font-mono"
         >
           {token.slice(1, -1)}
-        </code>
+        </code>,
       );
     } else if (token.startsWith("**")) {
       // Bold
       parts.push(
         <strong key={`bold-${match.index}`} className="font-semibold">
           {token.slice(2, -2)}
-        </strong>
+        </strong>,
       );
     } else if (token.startsWith("*")) {
       // Italic
-      parts.push(
-        <em key={`em-${match.index}`}>
-          {token.slice(1, -1)}
-        </em>
-      );
+      parts.push(<em key={`em-${match.index}`}>{token.slice(1, -1)}</em>);
     }
 
     lastIndex = match.index + token.length;
@@ -232,7 +237,7 @@ export function ChatMessages({
   }, [messages]);
 
   if (messages.length === 0 && !isLoading) {
-    return <ChatEmptyState onSuggestion={onSuggestion} />;
+    return <ChatEmptyState onSuggestion={onSuggestion} disabled={isLoading} />;
   }
 
   return (
@@ -242,7 +247,7 @@ export function ChatMessages({
           key={msg.id}
           className={cn(
             "flex flex-col gap-1.5 animate-fade-in",
-            msg.role === "user" ? "items-end" : "items-start"
+            msg.role === "user" ? "items-end" : "items-start",
           )}
         >
           {msg.parts?.map((part, i) => {
@@ -310,7 +315,10 @@ export function ChatMessages({
               }
 
               // Tool is executing (spinner)
-              if (part.state === "input-streaming" || part.state === "input-available") {
+              if (
+                part.state === "input-streaming" ||
+                part.state === "input-available"
+              ) {
                 // Only show spinner for auto-execute tools, not confirmation tools
                 if (!toolsRequiringConfirmation.includes(toolName)) {
                   return (
@@ -350,10 +358,8 @@ export function ChatMessages({
       {isLoading &&
         !messages.some((m) =>
           m.parts?.some(
-            (p) =>
-              isStaticToolUIPart(p) &&
-              p.state === "input-streaming"
-          )
+            (p) => isStaticToolUIPart(p) && p.state === "input-streaming",
+          ),
         ) && <TypingIndicator />}
 
       <div ref={messagesEndRef} />

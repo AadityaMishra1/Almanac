@@ -34,12 +34,18 @@ export function Navigation() {
   const { resolvedTheme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   const [signingIn, setSigningIn] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
 
   useEffect(() => setMounted(true), []);
 
   const handleSignIn = useCallback(() => {
     setSigningIn(true);
     signIn("google");
+  }, []);
+
+  const handleSignOut = useCallback(() => {
+    setSigningOut(true);
+    signOut();
   }, []);
 
   const isActive = (path: string) => pathname === path;
@@ -189,11 +195,21 @@ export function Navigation() {
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
-                  onClick={() => signOut()}
-                  className="text-red-600 focus:text-red-600 cursor-pointer"
+                  onClick={handleSignOut}
+                  disabled={signingOut}
+                  className="text-red-600 focus:text-red-600 cursor-pointer disabled:opacity-50"
                 >
-                  <LogOut className="h-4 w-4 mr-2" />
-                  Sign out
+                  {signingOut ? (
+                    <>
+                      <span className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-red-600 border-t-transparent" />
+                      Signing out…
+                    </>
+                  ) : (
+                    <>
+                      <LogOut className="h-4 w-4 mr-2" />
+                      Sign out
+                    </>
+                  )}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>

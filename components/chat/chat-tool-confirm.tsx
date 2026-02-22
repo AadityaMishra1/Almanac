@@ -1,6 +1,7 @@
 "use client";
 
-import { AlertTriangle } from "lucide-react";
+import { useState } from "react";
+import { AlertTriangle, Loader2 } from "lucide-react";
 import { APPROVAL } from "@/app/api/chat/utils";
 
 interface ChatToolConfirmProps {
@@ -22,7 +23,10 @@ export function ChatToolConfirm({
   addToolOutput,
   sendMessage,
 }: ChatToolConfirmProps) {
+  const [pending, setPending] = useState(false);
+
   async function handleConfirm() {
+    setPending(true);
     await addToolOutput({
       toolCallId,
       tool: toolName,
@@ -32,6 +36,7 @@ export function ChatToolConfirm({
   }
 
   async function handleCancel() {
+    setPending(true);
     await addToolOutput({
       toolCallId,
       tool: toolName,
@@ -49,6 +54,7 @@ export function ChatToolConfirm({
         heading="Delete event?"
         description={`\u201c${title}\u201d${date ? ` \u2014 ${date}` : ""}`}
         confirmLabel="Delete"
+        pending={pending}
         onConfirm={handleConfirm}
         onCancel={handleCancel}
       />
@@ -64,6 +70,7 @@ export function ChatToolConfirm({
         heading={`Delete ${eventIds.length} event${eventIds.length !== 1 ? "s" : ""}?`}
         description={reason}
         confirmLabel={`Delete ${eventIds.length}`}
+        pending={pending}
         onConfirm={handleConfirm}
         onCancel={handleCancel}
       />
@@ -77,12 +84,14 @@ function ConfirmCard({
   heading,
   description,
   confirmLabel,
+  pending,
   onConfirm,
   onCancel,
 }: {
   heading: string;
   description: string;
   confirmLabel: string;
+  pending: boolean;
   onConfirm: () => void;
   onCancel: () => void;
 }) {
@@ -100,15 +109,24 @@ function ConfirmCard({
           <div className="mt-3 flex items-center gap-2">
             <button
               onClick={onCancel}
-              className="rounded-lg px-3 py-1.5 text-xs font-medium text-[var(--text-secondary)] transition-colors duration-150 hover:bg-surface-secondary hover:text-[var(--text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20"
+              disabled={pending}
+              className="rounded-lg px-3 py-1.5 text-xs font-medium text-[var(--text-secondary)] transition-colors duration-150 hover:bg-surface-secondary hover:text-[var(--text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20 disabled:opacity-50 disabled:pointer-events-none"
             >
               Cancel
             </button>
             <button
               onClick={onConfirm}
-              className="rounded-lg bg-red-600 px-3 py-1.5 text-xs font-medium text-white transition-colors duration-150 hover:bg-red-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/20"
+              disabled={pending}
+              className="rounded-lg bg-red-600 px-3 py-1.5 text-xs font-medium text-white transition-colors duration-150 hover:bg-red-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/20 disabled:opacity-50 disabled:pointer-events-none"
             >
-              {confirmLabel}
+              {pending ? (
+                <span className="flex items-center gap-1.5">
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                  Processing…
+                </span>
+              ) : (
+                confirmLabel
+              )}
             </button>
           </div>
         </div>

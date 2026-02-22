@@ -40,7 +40,19 @@
       "mcp__plugin_context7_context7__resolve-library-id",
       "mcp__plugin_context7_context7__query-docs",
       "mcp__plugin_playwright_playwright__browser_navigate",
-      "Bash(vercel:*)"
+      "Bash(vercel:*)",
+      "mcp__plugin_playwright_playwright__browser_take_screenshot",
+      "mcp__plugin_supabase_supabase__list_projects",
+      "mcp__plugin_supabase_supabase__list_tables",
+      "mcp__plugin_supabase_supabase__get_advisors",
+      "mcp__plugin_supabase_supabase__execute_sql",
+      "mcp__plugin_supabase_supabase__get_publishable_keys",
+      "mcp__plugin_supabase_supabase__search_docs",
+      "mcp__plugin_supabase_supabase__apply_migration",
+      "mcp__plugin_supabase_supabase__get_project_url",
+      "Bash(gh pr create --base main --head landing-page --title \"feat: landing page, OAuth compliance, dashboard UX, and sign-in feedback\" --body \"$\\(cat <<'EOF'\n## Summary\n- OAuth legal compliance: privacy policy, terms of service, settings pages\n- Google Search Console domain verification \\(meta tag + HTML file\\)\n- Dashboard UX improvements and about page\n- Sign-in buttons now show loading spinner immediately on click \\(fixes dead gap before OAuth redirect\\)\n- Debug endpoint for diagnosing OAuth env vars on Vercel\n\n## Test plan\n- [ ] Verify landing page loads with \"Get started\" button\n- [ ] Click \"Sign in\" / \"Get started\" — spinner should appear instantly before Google redirect\n- [ ] Confirm Google OAuth flow completes successfully\n- [ ] Check /privacy, /terms, /about, /settings pages render\n- [ ] View page source and confirm google-site-verification meta tag is present\n\n🤖 Generated with [Claude Code]\\(https://claude.com/claude-code\\)\nEOF\n\\)\")",
+      "Bash(gh pr merge 5 --squash --delete-branch=false)",
+      "Bash(gh pr close 5)"
     ]
   },
   "model": "claude-opus-4-6"

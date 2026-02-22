@@ -45,10 +45,10 @@ export async function getCourses(filters?: {
     });
 
     return { ok: true, courses };
-  } catch (e) {
+  } catch {
     return {
       ok: false,
-      error: e instanceof Error ? e.message : "Failed to fetch courses.",
+      error: "Failed to fetch courses.",
     };
   }
 }
@@ -115,9 +115,9 @@ export async function deleteCourse(courseId: string): Promise<
       }
     }
 
-    // Cascade delete course + events
-    await prisma.course.delete({
-      where: { id: courseId },
+    // Atomic ownership check + cascade delete (no TOCTOU gap)
+    await prisma.course.deleteMany({
+      where: { id: courseId, userId },
     });
 
     // Also delete the secondary Google Calendar if one was created
@@ -142,10 +142,10 @@ export async function deleteCourse(courseId: string): Promise<
       googleRemoved,
       googleFailed,
     };
-  } catch (e) {
+  } catch {
     return {
       ok: false,
-      error: e instanceof Error ? e.message : "Failed to delete course.",
+      error: "Failed to delete course.",
     };
   }
 }
@@ -197,10 +197,10 @@ export async function getOrCreateCourse(
     });
 
     return { ok: true, course };
-  } catch (e) {
+  } catch {
     return {
       ok: false,
-      error: e instanceof Error ? e.message : "Failed to get or create course.",
+      error: "Failed to get or create course.",
     };
   }
 }
