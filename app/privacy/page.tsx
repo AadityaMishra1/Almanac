@@ -1,4 +1,7 @@
+import type { Metadata } from "next";
 import { LegalPageLayout } from "@/components/legal-page-layout";
+
+export const metadata: Metadata = { title: "Privacy Policy" };
 
 export default function PrivacyPage() {
   return (
@@ -8,10 +11,10 @@ export default function PrivacyPage() {
           Introduction
         </h2>
         <p>
-          Welcome to Almanac. We&apos;re an AI-powered calendar app designed to help
-          college students manage their academic schedules. This Privacy Policy
-          explains how we collect, use, protect, and share your information when
-          you use our service.
+          Welcome to Almanac. We&apos;re an AI-powered calendar app designed to
+          help college students manage their academic schedules. This Privacy
+          Policy explains how we collect, use, protect, and share your
+          information when you use our service.
         </p>
         <p className="mt-4">
           By using Almanac, you agree to the collection and use of information
@@ -48,9 +51,7 @@ export default function PrivacyPage() {
         <h3 className="text-xl font-semibold text-[var(--text-primary)] mt-6 mb-3">
           Google Calendar Data
         </h3>
-        <p>
-          With your explicit permission, we access your Google Calendar to:
-        </p>
+        <p>With your explicit permission, we access your Google Calendar to:</p>
         <ul className="list-disc pl-6 mt-2 space-y-2">
           <li>Read existing calendar events</li>
           <li>
@@ -78,7 +79,10 @@ export default function PrivacyPage() {
         <p>When you use our AI chat assistant, we collect:</p>
         <ul className="list-disc pl-6 mt-2 space-y-2">
           <li>Your queries and messages to the AI assistant</li>
-          <li>Actions you take through the chat (creating, editing, deleting events)</li>
+          <li>
+            Actions you take through the chat (creating, editing, deleting
+            events)
+          </li>
           <li>Usage patterns to improve the service</li>
         </ul>
 
@@ -156,8 +160,8 @@ export default function PrivacyPage() {
           .
         </p>
         <p className="mt-4">
-          Almanac&apos;s use and transfer of information received from Google APIs
-          adheres to the{" "}
+          Almanac&apos;s use and transfer of information received from Google
+          APIs adheres to the{" "}
           <a
             href="https://developers.google.com/terms/api-services-user-data-policy"
             target="_blank"
@@ -178,8 +182,8 @@ export default function PrivacyPage() {
         </p>
         <p className="mt-2">
           We use Gemini Vision API to extract course information, deadlines, and
-          assignments from your syllabi. This data is processed by Google&apos;s AI
-          infrastructure. For more information, see{" "}
+          assignments from your syllabi. This data is processed by Google&apos;s
+          AI infrastructure. For more information, see{" "}
           <a
             href="https://ai.google.dev/gemini-api/terms"
             target="_blank"
@@ -235,8 +239,8 @@ export default function PrivacyPage() {
           Vercel (Application Hosting)
         </h3>
         <p>
-          Our application is hosted on Vercel&apos;s platform. Vercel may collect
-          anonymous analytics and performance data. See{" "}
+          Our application is hosted on Vercel&apos;s platform. Vercel may
+          collect anonymous analytics and performance data. See{" "}
           <a
             href="https://vercel.com/legal/privacy-policy"
             target="_blank"
@@ -285,8 +289,8 @@ export default function PrivacyPage() {
             permanently (only extracted event data is saved)
           </li>
           <li>
-            <strong>Chat history</strong> - Not permanently stored; processed
-            in real-time
+            <strong>Chat history</strong> - Not permanently stored; processed in
+            real-time
           </li>
         </ul>
         <p className="mt-4">
@@ -331,8 +335,8 @@ export default function PrivacyPage() {
           Right to Opt-Out (CCPA)
         </h3>
         <p>
-          California residents have the right to opt-out of the &quot;sale&quot; of
-          personal information. We do not sell your personal information.
+          California residents have the right to opt-out of the &quot;sale&quot;
+          of personal information. We do not sell your personal information.
         </p>
 
         <h3 className="text-xl font-semibold text-[var(--text-primary)] mt-6 mb-3">
@@ -450,7 +454,9 @@ export default function PrivacyPage() {
           changes, we will:
         </p>
         <ul className="list-disc pl-6 mt-2 space-y-2">
-          <li>Update the &quot;Last updated&quot; date at the top of this page</li>
+          <li>
+            Update the &quot;Last updated&quot; date at the top of this page
+          </li>
           <li>
             Notify you via email for material changes (if you have provided an
             email address)

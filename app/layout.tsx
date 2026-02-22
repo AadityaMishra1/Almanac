@@ -23,18 +23,49 @@ const dmSans = DM_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "Almanac — Syllabus to Calendar",
-  description: "Upload a syllabus PDF, review extracted events, sync to Google Calendar.",
+  title: {
+    default: "Almanac",
+    template: "%s | Almanac",
+  },
+  description:
+    "Upload a syllabus PDF, AI extracts deadlines and exams, sync to Google Calendar in seconds.",
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_URL ||
+      (process.env.VERCEL_PROJECT_PRODUCTION_URL
+        ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+        : "http://localhost:3000"),
+  ),
+  openGraph: {
+    title: "Almanac",
+    description:
+      "Upload a syllabus PDF, AI extracts deadlines and exams, sync to Google Calendar in seconds.",
+    siteName: "Almanac",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Almanac",
+    description:
+      "Upload a syllabus PDF, AI extracts deadlines and exams, sync to Google Calendar in seconds.",
+  },
   verification: {
     google: "DOF2vK4dA2URwZnf9BQuwIN3qEz43zoVgK3dyIociF8",
   },
 };
 
-export default async function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const session = await getServerSession(authOptions);
 
   return (
-    <html lang="en" suppressHydrationWarning className={`${instrumentSerif.variable} ${dmSans.variable}`}>
+    <html
+      lang="en"
+      suppressHydrationWarning
+      className={`${instrumentSerif.variable} ${dmSans.variable}`}
+    >
       <body className="antialiased">
         <Providers session={session}>
           <Navigation />

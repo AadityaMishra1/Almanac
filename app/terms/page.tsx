@@ -1,4 +1,7 @@
+import type { Metadata } from "next";
 import { LegalPageLayout } from "@/components/legal-page-layout";
+
+export const metadata: Metadata = { title: "Terms of Service" };
 
 export default function TermsPage() {
   return (
@@ -9,8 +12,8 @@ export default function TermsPage() {
         </h2>
         <p>
           Welcome to Almanac. By accessing or using our service, you agree to be
-          bound by these Terms of Service (&quot;Terms&quot;). If you do not agree to
-          these Terms, you may not use Almanac.
+          bound by these Terms of Service (&quot;Terms&quot;). If you do not
+          agree to these Terms, you may not use Almanac.
         </p>
         <p className="mt-4">
           These Terms constitute a legally binding agreement between you and
@@ -25,7 +28,10 @@ export default function TermsPage() {
         <p>To use Almanac, you must:</p>
         <ul className="list-disc pl-6 mt-2 space-y-2">
           <li>Be at least 18 years old</li>
-          <li>Be a college or university student, or use the service for academic purposes</li>
+          <li>
+            Be a college or university student, or use the service for academic
+            purposes
+          </li>
           <li>Have a valid Google account for authentication</li>
           <li>
             Agree to comply with all applicable laws and regulations in your
@@ -49,7 +55,8 @@ export default function TermsPage() {
         <ul className="list-disc pl-6 mt-2 space-y-2">
           <li>
             <strong>Syllabus parsing</strong> - Upload course syllabi (PDFs) and
-            extract deadlines, assignments, and exam dates automatically using AI
+            extract deadlines, assignments, and exam dates automatically using
+            AI
           </li>
           <li>
             <strong>Calendar management</strong> - Create, edit, and delete
@@ -169,8 +176,14 @@ export default function TermsPage() {
         <p>When uploading syllabi or creating events, you agree to:</p>
         <ul className="list-disc pl-6 mt-2 space-y-2">
           <li>Only upload syllabi you have the right to use</li>
-          <li>Not upload content that violates copyright or intellectual property laws</li>
-          <li>Not upload content containing personal information of others without consent</li>
+          <li>
+            Not upload content that violates copyright or intellectual property
+            laws
+          </li>
+          <li>
+            Not upload content containing personal information of others without
+            consent
+          </li>
           <li>Not upload inappropriate, offensive, or illegal content</li>
         </ul>
       </section>
@@ -231,7 +244,10 @@ export default function TermsPage() {
         <h3 className="text-xl font-semibold text-[var(--text-primary)] mt-6 mb-3">
           Our Property
         </h3>
-        <p>Almanac and its contents are protected by intellectual property laws. We own all rights to:</p>
+        <p>
+          Almanac and its contents are protected by intellectual property laws.
+          We own all rights to:
+        </p>
         <ul className="list-disc pl-6 mt-2 space-y-2">
           <li>The Almanac application, website, and user interface</li>
           <li>Almanac branding, logos, and design elements</li>
@@ -295,8 +311,8 @@ export default function TermsPage() {
         <p>
           We use third-party AI services (Google Gemini, Groq) to process your
           syllabi and chat queries. These services may have their own terms and
-          privacy policies. We are not responsible for the accuracy, reliability,
-          or availability of these third-party AI services.
+          privacy policies. We are not responsible for the accuracy,
+          reliability, or availability of these third-party AI services.
         </p>
       </section>
 
@@ -309,8 +325,8 @@ export default function TermsPage() {
           Service Provided &quot;AS IS&quot;
         </h3>
         <p className="font-semibold text-[var(--brand-600)]">
-          Almanac is provided &quot;as is&quot; and &quot;as available&quot; without warranties of
-          any kind, either express or implied.
+          Almanac is provided &quot;as is&quot; and &quot;as available&quot;
+          without warranties of any kind, either express or implied.
         </p>
         <p className="mt-4">We specifically disclaim warranties regarding:</p>
         <ul className="list-disc pl-6 mt-2 space-y-2">
@@ -382,8 +398,8 @@ export default function TermsPage() {
             unavailability
           </li>
           <li>
-            <strong>Third-party actions</strong> - Actions or failures of Google,
-            AI providers, or other third parties
+            <strong>Third-party actions</strong> - Actions or failures of
+            Google, AI providers, or other third parties
           </li>
           <li>
             <strong>Unauthorized access</strong> - Security breaches or
@@ -416,7 +432,9 @@ export default function TermsPage() {
           <li>Your violation of these Terms</li>
           <li>Your violation of any laws or regulations</li>
           <li>Content you upload or create in the service</li>
-          <li>Your violation of third-party rights (copyright, privacy, etc.)</li>
+          <li>
+            Your violation of third-party rights (copyright, privacy, etc.)
+          </li>
         </ul>
       </section>
 
@@ -442,9 +460,7 @@ export default function TermsPage() {
         <h3 className="text-xl font-semibold text-[var(--text-primary)] mt-6 mb-3">
           Termination by Us
         </h3>
-        <p>
-          We reserve the right to suspend or terminate your account if you:
-        </p>
+        <p>We reserve the right to suspend or terminate your account if you:</p>
         <ul className="list-disc pl-6 mt-2 space-y-2">
           <li>Violate these Terms</li>
           <li>Engage in prohibited activities</li>
@@ -463,9 +479,9 @@ export default function TermsPage() {
         </h3>
         <p>
           Upon termination by either party, all provisions of these Terms that
-          should reasonably survive termination will continue to apply, including
-          intellectual property rights, disclaimers, limitations of liability,
-          and indemnification.
+          should reasonably survive termination will continue to apply,
+          including intellectual property rights, disclaimers, limitations of
+          liability, and indemnification.
         </p>
       </section>
 
@@ -486,11 +502,11 @@ export default function TermsPage() {
         <h3 className="text-xl font-semibold text-[var(--text-primary)] mt-6 mb-3">
           Changes to Terms
         </h3>
-        <p>
-          We may update these Terms from time to time. When we do, we will:
-        </p>
+        <p>We may update these Terms from time to time. When we do, we will:</p>
         <ul className="list-disc pl-6 mt-2 space-y-2">
-          <li>Update the &quot;Last updated&quot; date at the top of this page</li>
+          <li>
+            Update the &quot;Last updated&quot; date at the top of this page
+          </li>
           <li>
             Notify you via email or in-app notification for material changes
           </li>
@@ -512,8 +528,8 @@ export default function TermsPage() {
           Governing Law
         </h3>
         <p>
-          These Terms are governed by the laws of the State of California, United
-          States, without regard to conflict of law principles.
+          These Terms are governed by the laws of the State of California,
+          United States, without regard to conflict of law principles.
         </p>
 
         <h3 className="text-xl font-semibold text-[var(--text-primary)] mt-6 mb-3">
@@ -563,16 +579,17 @@ export default function TermsPage() {
           Severability
         </h3>
         <p>
-          If any provision of these Terms is found to be invalid or unenforceable,
-          the remaining provisions will remain in full force and effect.
+          If any provision of these Terms is found to be invalid or
+          unenforceable, the remaining provisions will remain in full force and
+          effect.
         </p>
 
         <h3 className="text-xl font-semibold text-[var(--text-primary)] mt-6 mb-3">
           Waiver
         </h3>
         <p>
-          Our failure to enforce any provision of these Terms does not constitute
-          a waiver of that provision or any other provision.
+          Our failure to enforce any provision of these Terms does not
+          constitute a waiver of that provision or any other provision.
         </p>
 
         <h3 className="text-xl font-semibold text-[var(--text-primary)] mt-6 mb-3">
@@ -587,8 +604,8 @@ export default function TermsPage() {
           No Agency
         </h3>
         <p>
-          Nothing in these Terms creates a partnership, joint venture, employment,
-          or agency relationship between you and Almanac.
+          Nothing in these Terms creates a partnership, joint venture,
+          employment, or agency relationship between you and Almanac.
         </p>
       </section>
 
@@ -597,8 +614,8 @@ export default function TermsPage() {
           Contact Information
         </h2>
         <p>
-          If you have questions about these Terms or need to contact us for legal
-          matters, please reach out:
+          If you have questions about these Terms or need to contact us for
+          legal matters, please reach out:
         </p>
         <div className="mt-4 p-4 bg-[var(--surface-secondary)] rounded-lg border border-[var(--border)]">
           <p>
@@ -621,9 +638,7 @@ export default function TermsPage() {
         <h2 className="text-2xl font-bold text-[var(--text-primary)] mb-4">
           Acknowledgment
         </h2>
-        <p>
-          By using Almanac, you acknowledge that:
-        </p>
+        <p>By using Almanac, you acknowledge that:</p>
         <ul className="list-disc pl-6 mt-2 space-y-2">
           <li>You have read and understood these Terms of Service</li>
           <li>You agree to be bound by these Terms</li>
@@ -635,9 +650,7 @@ export default function TermsPage() {
             You are responsible for meeting your academic deadlines and
             commitments
           </li>
-          <li>
-            You accept the risks and limitations described in these Terms
-          </li>
+          <li>You accept the risks and limitations described in these Terms</li>
         </ul>
         <p className="mt-4">
           Thank you for using Almanac! We hope our service helps you stay
