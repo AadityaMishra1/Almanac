@@ -2,9 +2,12 @@
 
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { getCalendarClient, getGoogleAccessTokenForUser } from "@/lib/google";
+import {
+  getCalendarClient,
+  getGoogleAccessTokenForUser,
+  getOrCreateCourseCalendar,
+} from "@/lib/google";
 import { prisma } from "@/lib/db";
-import { updateEvent } from "@/app/server-actions/events";
 
 /**
  * Estimate event duration in minutes based on type.
@@ -62,11 +65,12 @@ function addDays(isoDate: string, days: number) {
 export async function removeFromGoogleCalendar(
   accessToken: string,
   googleEventId: string,
+  googleCalendarId?: string | null,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   try {
     const calendar = getCalendarClient(accessToken);
     await calendar.events.delete({
-      calendarId: "primary",
+      calendarId: googleCalendarId || "primary",
       eventId: googleEventId,
     });
     return { ok: true };
@@ -150,8 +154,33 @@ export async function syncEventsToCalendar(
 
     const calendar = getCalendarClient(accessToken);
 
-    // Insert each event to Google Calendar and update database with googleEventId
+    // Cache course calendar IDs to avoid redundant API calls within this batch
+    const courseCalendarCache = new Map<string, string>();
+
+    // Insert each event to Google Calendar and update database
     for (const event of events) {
+      // Determine target calendar: course-specific or primary
+      let targetCalendarId = "primary";
+
+      if (event.course) {
+        const cacheKey = event.course.id;
+        if (courseCalendarCache.has(cacheKey)) {
+          targetCalendarId = courseCalendarCache.get(cacheKey)!;
+        } else {
+          targetCalendarId = await getOrCreateCourseCalendar(
+            accessToken,
+            {
+              id: event.course.id,
+              code: event.course.code,
+              name: event.course.name,
+              googleCalendarId: event.course.googleCalendarId,
+            },
+            userId,
+          );
+          courseCalendarCache.set(cacheKey, targetCalendarId);
+        }
+      }
+
       const descriptionParts = [
         event.type.charAt(0).toUpperCase() + event.type.slice(1),
         event.description,
@@ -193,18 +222,24 @@ export async function syncEventsToCalendar(
         };
       }
 
-      // Insert to Google Calendar
+      // Insert to the course-specific (or primary) Google Calendar
       const response = await calendar.events.insert({
-        calendarId: "primary",
+        calendarId: targetCalendarId,
         requestBody,
       });
 
       const googleEventId = response.data.id;
 
       if (googleEventId) {
-        // Update database event with Google Calendar ID
-        await updateEvent(event.id, {
-          googleEventId,
+        // Update database event with Google Calendar ID and which calendar it's in
+        // Uses direct Prisma update (not the public updateEvent server action)
+        // because googleEventId/googleCalendarId are internal sync fields
+        await prisma.event.update({
+          where: { id: event.id },
+          data: {
+            googleEventId,
+            googleCalendarId: targetCalendarId,
+          },
         });
       }
     }

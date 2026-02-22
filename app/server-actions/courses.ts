@@ -6,7 +6,7 @@ import type { Course } from "@prisma/client";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { removeFromGoogleCalendar } from "@/app/server-actions/calendar";
-import { getGoogleAccessTokenForUser } from "@/lib/google";
+import { getGoogleAccessTokenForUser, getCalendarClient } from "@/lib/google";
 
 const CreateCourseSchema = z.object({
   code: z.string().min(1),
@@ -58,9 +58,7 @@ export async function getCourses(filters?: {
  * Enforces ownership check.
  * Also removes synced events from Google Calendar before cascade delete.
  */
-export async function deleteCourse(
-  courseId: string,
-): Promise<
+export async function deleteCourse(courseId: string): Promise<
   | {
       ok: true;
       eventsRemoved: number;
@@ -88,7 +86,7 @@ export async function deleteCourse(
     // Fetch synced events BEFORE cascade delete
     const syncedEvents = await prisma.event.findMany({
       where: { courseId, userId, googleEventId: { not: null } },
-      select: { googleEventId: true },
+      select: { googleEventId: true, googleCalendarId: true },
     });
 
     // Batch-remove from Google Calendar
@@ -101,7 +99,11 @@ export async function deleteCourse(
     if (syncedEvents.length > 0 && accessToken) {
       const results = await Promise.allSettled(
         syncedEvents.map((evt) =>
-          removeFromGoogleCalendar(accessToken, evt.googleEventId!),
+          removeFromGoogleCalendar(
+            accessToken,
+            evt.googleEventId!,
+            evt.googleCalendarId,
+          ),
         ),
       );
       for (const result of results) {
@@ -117,6 +119,22 @@ export async function deleteCourse(
     await prisma.course.delete({
       where: { id: courseId },
     });
+
+    // Also delete the secondary Google Calendar if one was created
+    if (course.googleCalendarId && accessToken) {
+      try {
+        const calendarClient = getCalendarClient(accessToken);
+        await calendarClient.calendars.delete({
+          calendarId: course.googleCalendarId,
+        });
+      } catch {
+        // Non-fatal: the calendar may have been deleted externally
+        console.warn(
+          "Failed to delete secondary Google Calendar for course:",
+          courseId,
+        );
+      }
+    }
 
     return {
       ok: true,
