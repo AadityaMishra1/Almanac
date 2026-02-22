@@ -355,24 +355,24 @@ RULES:
               return { success: false, error: "Failed to delete any events" };
             }
 
-            // Log first event for undo (fire-and-forget)
+            // Log all deleted events for undo (fire-and-forget)
             if (validEvents.length > 0) {
-              const first = validEvents[0];
               logCommand({
                 userId,
                 type: "delete",
                 description: `Bulk deleted ${deleted} events: ${reason}`,
-                eventId: first.id,
-                beforeState: {
-                  title: first.title,
-                  date: first.date,
-                  time: first.time,
-                  type: first.type,
-                  courseId: first.courseId,
-                  description: first.description,
-                },
+                eventId: validEvents[0].id,
+                beforeState: validEvents.map((e) => ({
+                  id: e.id,
+                  title: e.title,
+                  date: e.date,
+                  time: e.time,
+                  type: e.type,
+                  courseId: e.courseId,
+                  description: e.description,
+                })),
                 afterState: null,
-              }).catch(() => {});
+              }).catch((err) => console.error("Failed to log command:", err));
             }
 
             return {

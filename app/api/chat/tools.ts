@@ -294,8 +294,7 @@ export function createTools(userId: string) {
       }) => {
         // Validate dates
         const startCheck = validateDate(startDate);
-        if (!startCheck.ok)
-          return { success: false, error: startCheck.error };
+        if (!startCheck.ok) return { success: false, error: startCheck.error };
         const endCheck = validateDate(endDate);
         if (!endCheck.ok) return { success: false, error: endCheck.error };
         if (time) {
@@ -400,7 +399,7 @@ export function createTools(userId: string) {
           .filter(([, count]) => count > 1)
           .map(([date]) => date);
 
-        // Log command for undo (fire-and-forget) — log first event as representative
+        // Log all created IDs for undo (fire-and-forget)
         if (createdIds.length > 0) {
           logCommand({
             userId,
@@ -408,8 +407,8 @@ export function createTools(userId: string) {
             description: `Created ${succeeded.length} recurring "${title}" events (${daysOfWeek.join(", ")})`,
             eventId: createdIds[0],
             beforeState: null,
-            afterState: { title, type, date: `${startDate} to ${endDate}` },
-          }).catch(() => {});
+            afterState: { title, type, allEventIds: createdIds },
+          }).catch((err) => console.error("Failed to log command:", err));
         }
 
         return {
@@ -425,8 +424,7 @@ export function createTools(userId: string) {
           }),
           ...(missingDates.length > 0 && { missingDates }),
           ...(duplicateDates.length > 0 && { duplicateDates }),
-          verified:
-            missingDates.length === 0 && duplicateDates.length === 0,
+          verified: missingDates.length === 0 && duplicateDates.length === 0,
           dates: succeeded.map((r) => r.date),
           daysOfWeek,
           title,
@@ -467,21 +465,18 @@ export function createTools(userId: string) {
       execute: async ({ eventId, title, date, time, type, description }) => {
         // Validate event exists and belongs to user
         const eventCheck = await validateEventId(eventId, userId);
-        if (!eventCheck.ok)
-          return { success: false, error: eventCheck.error };
+        if (!eventCheck.ok) return { success: false, error: eventCheck.error };
 
         const before = eventCheck.event;
 
         // Validate new date if provided
         if (date) {
           const dateCheck = validateDate(date);
-          if (!dateCheck.ok)
-            return { success: false, error: dateCheck.error };
+          if (!dateCheck.ok) return { success: false, error: dateCheck.error };
         }
         if (time) {
           const timeCheck = validateTime(time);
-          if (!timeCheck.ok)
-            return { success: false, error: timeCheck.error };
+          if (!timeCheck.ok) return { success: false, error: timeCheck.error };
         }
 
         const updates: Record<string, string | null> = {};
@@ -585,10 +580,7 @@ export function createTools(userId: string) {
           .string()
           .optional()
           .describe("End of date range to search in YYYY-MM-DD format"),
-        courseId: z
-          .string()
-          .optional()
-          .describe("Filter by course UUID"),
+        courseId: z.string().optional().describe("Filter by course UUID"),
         type: z
           .enum([
             "exam",
@@ -606,17 +598,9 @@ export function createTools(userId: string) {
         titleSearch: z
           .string()
           .optional()
-          .describe(
-            "Search events by title (case-insensitive partial match)",
-          ),
+          .describe("Search events by title (case-insensitive partial match)"),
       }),
-      execute: async ({
-        startDate,
-        endDate,
-        courseId,
-        type,
-        titleSearch,
-      }) => {
+      execute: async ({ startDate, endDate, courseId, type, titleSearch }) => {
         if (startDate) {
           const check = validateDate(startDate);
           if (!check.ok) return { success: false, error: check.error };
@@ -691,8 +675,7 @@ export function createTools(userId: string) {
       }),
       execute: async ({ date, durationMinutes = 60 }) => {
         const dateCheck = validateDate(date);
-        if (!dateCheck.ok)
-          return { success: false, error: dateCheck.error };
+        if (!dateCheck.ok) return { success: false, error: dateCheck.error };
 
         const events = await prisma.event.findMany({
           where: { userId, date },
@@ -722,8 +705,9 @@ export function createTools(userId: string) {
         let cursor = dayStart;
 
         for (const slot of busySlots) {
-          if (slot.start < dayStart) continue;
-          if (cursor + durationMinutes <= slot.start) {
+          if (slot.end <= dayStart) continue; // completely before window
+          const effectiveStart = Math.max(slot.start, dayStart);
+          if (cursor + durationMinutes <= effectiveStart) {
             freeSlots.push({
               start: minutesToTimeStr(cursor),
               end: minutesToTimeStr(slot.start),
@@ -754,9 +738,7 @@ export function createTools(userId: string) {
       description:
         "Get a summary of the user's schedule for a specific date or date range. Use for briefings like 'what's my day look like?', 'what's happening this week?', or 'any deadlines coming up?'. Returns events grouped by day plus upcoming deadlines.",
       inputSchema: z.object({
-        startDate: z
-          .string()
-          .describe("Start date in YYYY-MM-DD format"),
+        startDate: z.string().describe("Start date in YYYY-MM-DD format"),
         endDate: z
           .string()
           .optional()
@@ -766,12 +748,10 @@ export function createTools(userId: string) {
       }),
       execute: async ({ startDate, endDate }) => {
         const startCheck = validateDate(startDate);
-        if (!startCheck.ok)
-          return { success: false, error: startCheck.error };
+        if (!startCheck.ok) return { success: false, error: startCheck.error };
         if (endDate) {
           const endCheck = validateDate(endDate);
-          if (!endCheck.ok)
-            return { success: false, error: endCheck.error };
+          if (!endCheck.ok) return { success: false, error: endCheck.error };
         }
 
         const effectiveEnd = endDate || startDate;
@@ -793,18 +773,16 @@ export function createTools(userId: string) {
           byDate.set(e.date, arr);
         }
 
-        const days = Array.from(byDate.entries()).map(
-          ([date, dayEvents]) => ({
-            date,
-            events: dayEvents.map((e) => ({
-              id: e.id,
-              title: e.title,
-              time: e.time,
-              type: e.type,
-              courseName: e.course?.name ?? null,
-            })),
-          }),
-        );
+        const days = Array.from(byDate.entries()).map(([date, dayEvents]) => ({
+          date,
+          events: dayEvents.map((e) => ({
+            id: e.id,
+            title: e.title,
+            time: e.time,
+            type: e.type,
+            courseName: e.course?.name ?? null,
+          })),
+        }));
 
         // Upcoming deadlines in the 7 days after the end date
         const deadlineEnd = format(
@@ -841,18 +819,12 @@ export function createTools(userId: string) {
       description:
         "Check if a proposed time slot conflicts with existing events. Use before creating or rescheduling events, or when the user asks 'am I free at X?'. Returns conflicting events if any.",
       inputSchema: z.object({
-        date: z
-          .string()
-          .describe("Date to check in YYYY-MM-DD format"),
-        time: z
-          .string()
-          .describe("Time to check in HH:MM 24-hour format"),
+        date: z.string().describe("Date to check in YYYY-MM-DD format"),
+        time: z.string().describe("Time to check in HH:MM 24-hour format"),
         durationMinutes: z
           .number()
           .optional()
-          .describe(
-            "Duration of the proposed event in minutes (default 60)",
-          ),
+          .describe("Duration of the proposed event in minutes (default 60)"),
         excludeEventId: z
           .string()
           .optional()
@@ -860,18 +832,11 @@ export function createTools(userId: string) {
             "Event ID to exclude from conflict check (for rescheduling)",
           ),
       }),
-      execute: async ({
-        date,
-        time,
-        durationMinutes = 60,
-        excludeEventId,
-      }) => {
+      execute: async ({ date, time, durationMinutes = 60, excludeEventId }) => {
         const dateCheck = validateDate(date);
-        if (!dateCheck.ok)
-          return { success: false, error: dateCheck.error };
+        if (!dateCheck.ok) return { success: false, error: dateCheck.error };
         const timeCheck = validateTime(time);
-        if (!timeCheck.ok)
-          return { success: false, error: timeCheck.error };
+        if (!timeCheck.ok) return { success: false, error: timeCheck.error };
 
         const conflicts = await findConflicts(
           userId,
@@ -923,8 +888,7 @@ export function createTools(userId: string) {
       execute: async () => {
         const idsResult = await getUnsyncedEventIds();
 
-        if (!idsResult.ok)
-          return { success: false, error: idsResult.error };
+        if (!idsResult.ok) return { success: false, error: idsResult.error };
         if (idsResult.count === 0)
           return {
             success: true,
@@ -934,8 +898,7 @@ export function createTools(userId: string) {
           };
 
         const syncResult = await syncEventsToCalendar(idsResult.eventIds);
-        if (!syncResult.ok)
-          return { success: false, error: syncResult.error };
+        if (!syncResult.ok) return { success: false, error: syncResult.error };
 
         return {
           success: true,
@@ -957,10 +920,19 @@ export function createTools(userId: string) {
 
         try {
           if (lastCmd.type === "create") {
-            // Undo create = delete the created event
-            const result = await deleteEvent(lastCmd.eventId);
-            if (!result.ok)
-              return { success: false, error: result.error };
+            // Undo create = delete the created event(s)
+            const after = lastCmd.afterState
+              ? JSON.parse(lastCmd.afterState)
+              : null;
+            const idsToDelete: string[] = after?.allEventIds ?? [
+              lastCmd.eventId,
+            ];
+            const results = await Promise.all(
+              idsToDelete.map((id: string) => deleteEvent(id)),
+            );
+            const failed = results.filter((r) => !r.ok);
+            if (failed.length === idsToDelete.length)
+              return { success: false, error: "Failed to undo creation" };
           } else if (lastCmd.type === "modify") {
             // Undo modify = restore beforeState
             const before = JSON.parse(lastCmd.beforeState!);
@@ -971,23 +943,36 @@ export function createTools(userId: string) {
               type: before.type,
               description: before.description,
             });
-            if (!result.ok)
-              return { success: false, error: result.error };
+            if (!result.ok) return { success: false, error: result.error };
           } else if (lastCmd.type === "delete") {
-            // Undo delete = recreate from beforeState
+            // Undo delete = recreate from beforeState (single or bulk)
             const before = JSON.parse(lastCmd.beforeState!);
-            const result = await createEvent({
-              title: before.title,
-              date: before.date,
-              time: before.time || null,
-              type: before.type,
-              courseId: before.courseId || null,
-              description: before.description || "",
-              source: "ALMANAC",
-              googleEventId: null,
-            });
-            if (!result.ok)
-              return { success: false, error: result.error };
+            const events = Array.isArray(before) ? before : [before];
+            const results = await Promise.all(
+              events.map(
+                (e: {
+                  title: string;
+                  date: string;
+                  time?: string;
+                  type: string;
+                  courseId?: string;
+                  description?: string;
+                }) =>
+                  createEvent({
+                    title: e.title,
+                    date: e.date,
+                    time: e.time || null,
+                    type: e.type,
+                    courseId: e.courseId || null,
+                    description: e.description || "",
+                    source: "ALMANAC",
+                    googleEventId: null,
+                  }),
+              ),
+            );
+            const failed = results.filter((r) => !r.ok);
+            if (failed.length === events.length)
+              return { success: false, error: "Failed to undo deletion" };
           }
 
           // Mark as undone
@@ -1016,9 +1001,7 @@ export function createTools(userId: string) {
       description:
         "Delete a single calendar event. This is destructive and requires user confirmation. Cannot delete read-only Google Calendar events.",
       inputSchema: z.object({
-        eventId: z
-          .string()
-          .describe("The UUID of the event to delete"),
+        eventId: z.string().describe("The UUID of the event to delete"),
         eventTitle: z
           .string()
           .describe("The title of the event (shown in confirmation card)"),

@@ -33,12 +33,20 @@ function estimateEventDuration(type: string): number {
  * Add minutes to an HH:MM time string.
  * Returns the resulting HH:MM string.
  */
-function addMinutesToTimeString(time: string, minutes: number): string {
+function addMinutesToTimeString(
+  time: string,
+  minutes: number,
+): { time: string; dayOverflow: number } {
   const [h, m] = time.split(":").map(Number);
   const total = h * 60 + m + minutes;
-  const newH = Math.floor(total / 60) % 24;
-  const newM = total % 60;
-  return `${String(newH).padStart(2, "0")}:${String(newM).padStart(2, "0")}`;
+  const dayOverflow = Math.floor(total / 1440);
+  const remaining = total % 1440;
+  const newH = Math.floor(remaining / 60);
+  const newM = remaining % 60;
+  return {
+    time: `${String(newH).padStart(2, "0")}:${String(newM).padStart(2, "0")}`,
+    dayOverflow,
+  };
 }
 
 function addDays(isoDate: string, days: number) {
@@ -154,25 +162,36 @@ export async function syncEventsToCalendar(
 
       // Use timed event format if event has a time, otherwise all-day
       const hasTime = event.time !== null;
-      const requestBody = hasTime
-        ? {
-            summary: event.title,
-            description: descriptionParts.join("\n\n"),
-            start: {
-              dateTime: `${event.date}T${event.time}:00`,
-              timeZone: "America/New_York",
-            },
-            end: {
-              dateTime: `${event.date}T${addMinutesToTimeString(event.time!, estimateEventDuration(event.type))}:00`,
-              timeZone: "America/New_York",
-            },
-          }
-        : {
-            summary: event.title,
-            description: descriptionParts.join("\n\n"),
-            start: { date: event.date },
-            end: { date: addDays(event.date, 1) },
-          };
+      let requestBody;
+      if (hasTime) {
+        const endResult = addMinutesToTimeString(
+          event.time!,
+          estimateEventDuration(event.type),
+        );
+        const endDate =
+          endResult.dayOverflow > 0
+            ? addDays(event.date, endResult.dayOverflow)
+            : event.date;
+        requestBody = {
+          summary: event.title,
+          description: descriptionParts.join("\n\n"),
+          start: {
+            dateTime: `${event.date}T${event.time}:00`,
+            timeZone: "America/New_York",
+          },
+          end: {
+            dateTime: `${endDate}T${endResult.time}:00`,
+            timeZone: "America/New_York",
+          },
+        };
+      } else {
+        requestBody = {
+          summary: event.title,
+          description: descriptionParts.join("\n\n"),
+          start: { date: event.date },
+          end: { date: addDays(event.date, 1) },
+        };
+      }
 
       // Insert to Google Calendar
       const response = await calendar.events.insert({

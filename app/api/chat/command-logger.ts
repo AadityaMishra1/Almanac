@@ -1,13 +1,19 @@
 import { prisma } from "@/lib/db";
 import type { Event } from "@prisma/client";
 
+type CommandState =
+  | Partial<Event>
+  | Partial<Event>[]
+  | Record<string, unknown>
+  | null;
+
 interface LogCommandInput {
   userId: string;
   type: "create" | "modify" | "delete";
   description: string;
   eventId: string;
-  beforeState: Partial<Event> | null;
-  afterState: Partial<Event> | null;
+  beforeState: CommandState;
+  afterState: CommandState;
 }
 
 /**
@@ -20,12 +26,8 @@ export async function logCommand(input: LogCommandInput): Promise<string> {
       type: input.type,
       description: input.description,
       eventId: input.eventId,
-      beforeState: input.beforeState
-        ? JSON.stringify(input.beforeState)
-        : null,
-      afterState: input.afterState
-        ? JSON.stringify(input.afterState)
-        : null,
+      beforeState: input.beforeState ? JSON.stringify(input.beforeState) : null,
+      afterState: input.afterState ? JSON.stringify(input.afterState) : null,
       userId: input.userId,
     },
   });
