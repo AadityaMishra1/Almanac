@@ -182,6 +182,7 @@ export async function deleteEvent(
       const gcResult = await removeFromGoogleCalendar(
         accessToken,
         existing.googleEventId,
+        existing.googleCalendarId,
       );
       googleSyncResult = gcResult.ok ? "removed" : "failed";
     }

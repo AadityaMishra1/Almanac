@@ -1,11 +1,11 @@
 import { z } from "zod";
-import { Event, EventSource } from '@prisma/client';
+import { Event, EventSource } from "@prisma/client";
 
 export const SyllabusEventSchema = z.object({
   title: z.string().min(1),
   date: z.string().min(1),
   type: z.string().min(1),
-  description: z.string().optional().default("")
+  description: z.string().optional().default(""),
 });
 
 export type SyllabusEvent = z.infer<typeof SyllabusEventSchema>;
@@ -50,14 +50,20 @@ function coerceToIsoDate(value: string) {
 export function normalizeAndValidateEvents(input: unknown): SyllabusEvent[] {
   const result = SyllabusEventsResponseSchema.safeParse(input);
   if (result.success) {
-    return result.data.map((event) => ({ ...event, date: coerceToIsoDate(event.date) }));
+    return result.data.map((event) => ({
+      ...event,
+      date: coerceToIsoDate(event.date),
+    }));
   }
 
   if (typeof input === "object" && input && "events" in input) {
     const maybeEvents = (input as Record<string, unknown>).events;
     const nested = SyllabusEventsResponseSchema.safeParse(maybeEvents);
     if (nested.success) {
-      return nested.data.map((event) => ({ ...event, date: coerceToIsoDate(event.date) }));
+      return nested.data.map((event) => ({
+        ...event,
+        date: coerceToIsoDate(event.date),
+      }));
     }
   }
 
@@ -84,7 +90,6 @@ export const UpdateEventSchema = z.object({
   time: z.string().nullable().optional(),
   type: z.string().min(1).optional(),
   description: z.string().optional(),
-  googleEventId: z.string().nullable().optional(),
 });
 
 export type UpdateEventInput = z.infer<typeof UpdateEventSchema>;
@@ -95,7 +100,7 @@ export type UpdateEventInput = z.infer<typeof UpdateEventSchema>;
  */
 export function syllabusEventToCreateInput(
   event: SyllabusEvent,
-  courseId: string
+  courseId: string,
 ): CreateEventInput {
   return {
     title: event.title,

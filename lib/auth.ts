@@ -3,7 +3,7 @@ import GoogleProvider from "next-auth/providers/google";
 import { refreshGoogleAccessToken } from "@/lib/google";
 import { prisma } from "@/lib/db";
 
-const CALENDAR_SCOPE = "https://www.googleapis.com/auth/calendar.events";
+const CALENDAR_SCOPE = "https://www.googleapis.com/auth/calendar";
 
 export const authOptions: NextAuthOptions = {
   session: { strategy: "jwt" },
@@ -15,10 +15,10 @@ export const authOptions: NextAuthOptions = {
         params: {
           scope: `openid email profile ${CALENDAR_SCOPE}`,
           access_type: "offline",
-          prompt: "consent"
-        }
-      }
-    })
+          prompt: "consent",
+        },
+      },
+    }),
   ],
   callbacks: {
     async signIn({ user, account, profile }) {
@@ -48,7 +48,7 @@ export const authOptions: NextAuthOptions = {
             googleTokenExpiry: account?.expires_at
               ? new Date(account.expires_at * 1000)
               : undefined,
-          }
+          },
         });
 
         return true;
@@ -62,7 +62,9 @@ export const authOptions: NextAuthOptions = {
       if (account && user) {
         token.accessToken = account.access_token;
         token.refreshToken = account.refresh_token;
-        token.expiresAt = account.expires_at ? account.expires_at * 1000 : undefined;
+        token.expiresAt = account.expires_at
+          ? account.expires_at * 1000
+          : undefined;
         // DO NOT use user.id from OAuth - it's not our DB ID
       }
 
@@ -71,7 +73,7 @@ export const authOptions: NextAuthOptions = {
       if (token.email) {
         const dbUser = await prisma.user.findUnique({
           where: { email: token.email },
-          select: { id: true }
+          select: { id: true },
         });
         if (dbUser) {
           token.userId = dbUser.id;
@@ -102,7 +104,7 @@ export const authOptions: NextAuthOptions = {
                 googleTokenExpiry: refreshedToken.expiresAt
                   ? new Date(refreshedToken.expiresAt as number)
                   : null,
-              }
+              },
             });
           }
 
@@ -122,7 +124,10 @@ export const authOptions: NextAuthOptions = {
       } else if (session.user && !token.userId) {
         // Critical: userId not found in database
         // This should not happen if signIn callback succeeded
-        console.error("Session error: userId not found for email:", token.email);
+        console.error(
+          "Session error: userId not found for email:",
+          token.email,
+        );
         // Don't set id - this will cause auth checks to fail gracefully
       }
 
@@ -131,6 +136,6 @@ export const authOptions: NextAuthOptions = {
       session.error = token.error as "RefreshAccessTokenError" | undefined;
 
       return session;
-    }
-  }
+    },
+  },
 };

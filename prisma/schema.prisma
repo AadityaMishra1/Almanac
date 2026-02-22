@@ -46,6 +46,8 @@ model Course {
   color    String? // hex color for calendar UI (e.g., "#3b82f6")
   semester String // e.g., "Spring 2026"
 
+  googleCalendarId String? // Google Calendar ID for this course's secondary calendar
+
   // Multi-tenancy
   userId   String
   user     User    @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -70,8 +72,9 @@ model Event {
 
   // Source authority and permissions
   source          EventSource @default(ALMANAC)
-  googleEventId   String?     @unique // Maps to Google Calendar event ID for sync
-  googleUpdatedAt DateTime?   // For last-write-wins conflict resolution
+  googleEventId    String?     @unique // Maps to Google Calendar event ID for sync
+  googleCalendarId String?     // Which Google Calendar this event was synced to (for deletion)
+  googleUpdatedAt  DateTime?   // For last-write-wins conflict resolution
   editable        Boolean     @default(true) // Computed: true for ALMANAC, false for GOOGLE_CALENDAR
 
   // Multi-tenancy
