@@ -17,6 +17,9 @@ import {
   GraduationCap,
   Beaker,
   Cloud,
+  CalendarDays,
+  AlertTriangle,
+  Undo2,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -129,8 +132,7 @@ export function ChatToolResult({ toolName, output }: ToolResultProps) {
   const success = output?.success === true;
 
   if (!success) {
-    const error =
-      (output?.error as string) ?? "Something went wrong";
+    const error = (output?.error as string) ?? "Something went wrong";
     return (
       <div className="animate-fade-in rounded-xl border border-red-200 bg-red-50 p-3 shadow-sm dark:border-red-900/50 dark:bg-red-950/20">
         <div className="flex items-start gap-2.5">
@@ -154,14 +156,23 @@ export function ChatToolResult({ toolName, output }: ToolResultProps) {
       const eventType = (event?.type as string) || "other";
       const TypeIcon = getTypeIcon(eventType);
       return (
-        <ResultCard borderColor="border-l-green-500" icon={CalendarPlus} iconColor="text-green-600">
+        <ResultCard
+          borderColor="border-l-green-500"
+          icon={CalendarPlus}
+          iconColor="text-green-600"
+        >
           <p className="text-xs font-medium text-[var(--text-primary)]">
             Event created
           </p>
           {event && (
             <div className="mt-1.5 space-y-1">
               <div className="flex items-center gap-1.5">
-                <TypeIcon className={cn("h-3.5 w-3.5 shrink-0", getTypeIconColor(eventType))} />
+                <TypeIcon
+                  className={cn(
+                    "h-3.5 w-3.5 shrink-0",
+                    getTypeIconColor(eventType),
+                  )}
+                />
                 <span className="text-sm font-medium text-[var(--text-primary)]">
                   {event.title as string}
                 </span>
@@ -187,10 +198,16 @@ export function ChatToolResult({ toolName, output }: ToolResultProps) {
       const title = output.title as string;
       const daysOfWeek = output.daysOfWeek as string[] | undefined;
       const dayLabel = daysOfWeek
-        ? daysOfWeek.map((d) => d.charAt(0).toUpperCase() + d.slice(1)).join(", ")
+        ? daysOfWeek
+            .map((d) => d.charAt(0).toUpperCase() + d.slice(1))
+            .join(", ")
         : "";
       return (
-        <ResultCard borderColor="border-l-green-500" icon={Repeat} iconColor="text-green-600">
+        <ResultCard
+          borderColor="border-l-green-500"
+          icon={Repeat}
+          iconColor="text-green-600"
+        >
           <p className="text-xs font-medium text-[var(--text-primary)]">
             {count} events created
           </p>
@@ -211,7 +228,11 @@ export function ChatToolResult({ toolName, output }: ToolResultProps) {
     case "edit_event": {
       const event = output.event as Record<string, unknown> | undefined;
       return (
-        <ResultCard borderColor="border-l-amber-500" icon={ArrowRightLeft} iconColor="text-amber-600">
+        <ResultCard
+          borderColor="border-l-amber-500"
+          icon={ArrowRightLeft}
+          iconColor="text-amber-600"
+        >
           <p className="text-xs font-medium text-[var(--text-primary)]">
             Event updated
           </p>
@@ -224,8 +245,10 @@ export function ChatToolResult({ toolName, output }: ToolResultProps) {
                 event.oldTime !== event.newTime) && (
                 <p className="text-[11px] text-[var(--text-tertiary)]">
                   {fmtDate(event.oldDate as string)}
-                  {event.oldTime ? ` ${fmtTime(event.oldTime as string)}` : ""} &rarr;{" "}
-                  {fmtDate(event.newDate as string)}
+                  {event.oldTime
+                    ? ` ${fmtTime(event.oldTime as string)}`
+                    : ""}{" "}
+                  &rarr; {fmtDate(event.newDate as string)}
                   {event.newTime ? ` ${fmtTime(event.newTime as string)}` : ""}
                 </p>
               )}
@@ -247,7 +270,11 @@ export function ChatToolResult({ toolName, output }: ToolResultProps) {
       const deletedTitle = output.deletedTitle as string | undefined;
       const deletedDate = output.deletedDate as string | undefined;
       return (
-        <ResultCard borderColor="border-l-red-500" icon={Trash2} iconColor="text-red-600">
+        <ResultCard
+          borderColor="border-l-red-500"
+          icon={Trash2}
+          iconColor="text-red-600"
+        >
           <p className="text-xs font-medium text-[var(--text-primary)]">
             Event deleted
           </p>
@@ -267,7 +294,11 @@ export function ChatToolResult({ toolName, output }: ToolResultProps) {
       const deletedCount = output.deletedCount as number;
       const reason = output.reason as string | undefined;
       return (
-        <ResultCard borderColor="border-l-red-500" icon={Trash2} iconColor="text-red-600">
+        <ResultCard
+          borderColor="border-l-red-500"
+          icon={Trash2}
+          iconColor="text-red-600"
+        >
           <p className="text-xs font-medium text-[var(--text-primary)]">
             {deletedCount} event{deletedCount !== 1 ? "s" : ""} deleted
           </p>
@@ -282,9 +313,15 @@ export function ChatToolResult({ toolName, output }: ToolResultProps) {
 
     case "query_events": {
       const count = output.count as number;
-      const events = output.events as Array<Record<string, unknown>> | undefined;
+      const events = output.events as
+        | Array<Record<string, unknown>>
+        | undefined;
       return (
-        <ResultCard borderColor="border-l-blue-500" icon={Search} iconColor="text-blue-600">
+        <ResultCard
+          borderColor="border-l-blue-500"
+          icon={Search}
+          iconColor="text-blue-600"
+        >
           <p className="text-xs font-medium text-[var(--text-primary)]">
             Found {count} event{count !== 1 ? "s" : ""}
           </p>
@@ -301,13 +338,13 @@ export function ChatToolResult({ toolName, output }: ToolResultProps) {
                     <span
                       className={cn(
                         "h-1.5 w-1.5 shrink-0 rounded-full",
-                        getTypeDotColor(evtType)
+                        getTypeDotColor(evtType),
                       )}
                     />
                     <EvtIcon
                       className={cn(
                         "h-3.5 w-3.5 shrink-0",
-                        getTypeIconColor(evtType)
+                        getTypeIconColor(evtType),
                       )}
                     />
                     <span className="min-w-0 flex-1 truncate text-xs font-medium text-[var(--text-secondary)]">
@@ -343,10 +380,16 @@ export function ChatToolResult({ toolName, output }: ToolResultProps) {
 
     case "suggest_study_time": {
       const date = output.date as string;
-      const freeSlots = output.freeSlots as Array<{ start: string; end: string }> | undefined;
+      const freeSlots = output.freeSlots as
+        | Array<{ start: string; end: string }>
+        | undefined;
       const existingCount = output.existingEventCount as number;
       return (
-        <ResultCard borderColor="border-l-green-500" icon={Clock} iconColor="text-green-600">
+        <ResultCard
+          borderColor="border-l-green-500"
+          icon={Clock}
+          iconColor="text-green-600"
+        >
           <p className="text-xs font-medium text-[var(--text-primary)]">
             Free time on {fmtDate(date)}
           </p>
@@ -382,9 +425,246 @@ export function ChatToolResult({ toolName, output }: ToolResultProps) {
     case "sync_to_google_calendar": {
       const count = output.count as number;
       return (
-        <ResultCard borderColor="border-l-blue-500" icon={Check} iconColor="text-blue-600">
+        <ResultCard
+          borderColor="border-l-blue-500"
+          icon={Check}
+          iconColor="text-blue-600"
+        >
           <p className="text-xs font-medium text-[var(--text-primary)]">
             {count} event{count !== 1 ? "s" : ""} synced to Google Calendar
+          </p>
+        </ResultCard>
+      );
+    }
+
+    case "sync_all_to_google": {
+      const count = output.count as number;
+      const message = output.message as string | undefined;
+      return (
+        <ResultCard
+          borderColor="border-l-blue-500"
+          icon={Cloud}
+          iconColor="text-blue-600"
+        >
+          <p className="text-xs font-medium text-[var(--text-primary)]">
+            {count === 0
+              ? "All events already synced"
+              : `${count} event${count !== 1 ? "s" : ""} synced to Google Calendar`}
+          </p>
+          {message && (
+            <p className="mt-0.5 text-[11px] text-[var(--text-tertiary)]">
+              {message}
+            </p>
+          )}
+        </ResultCard>
+      );
+    }
+
+    case "get_schedule_summary": {
+      const totalEvents = output.totalEvents as number;
+      const days = output.days as
+        | Array<{
+            date: string;
+            events: Array<{
+              id: string;
+              title: string;
+              time: string | null;
+              type: string;
+              courseName: string | null;
+            }>;
+          }>
+        | undefined;
+      const upcomingDeadlines = output.upcomingDeadlines as
+        | Array<{
+            title: string;
+            date: string;
+            type: string;
+            courseName: string | null;
+          }>
+        | undefined;
+
+      return (
+        <ResultCard
+          borderColor="border-l-indigo-500"
+          icon={CalendarDays}
+          iconColor="text-indigo-600"
+        >
+          <p className="text-xs font-medium text-[var(--text-primary)]">
+            Schedule summary &mdash; {totalEvents} event
+            {totalEvents !== 1 ? "s" : ""}
+          </p>
+          {days && days.length > 0 && (
+            <div className="mt-2 space-y-2">
+              {days.slice(0, 5).map((day) => (
+                <div key={day.date}>
+                  <p className="text-[11px] font-medium uppercase tracking-wide text-[var(--text-tertiary)]">
+                    {fmtDate(day.date)}
+                  </p>
+                  <div className="mt-0.5 space-y-0.5">
+                    {day.events.map((evt) => {
+                      const EvtIcon = getTypeIcon(evt.type);
+                      return (
+                        <div
+                          key={evt.id}
+                          className="flex items-center gap-2 rounded-lg bg-surface px-2 py-1"
+                        >
+                          <EvtIcon
+                            className={cn(
+                              "h-3 w-3 shrink-0",
+                              getTypeIconColor(evt.type),
+                            )}
+                          />
+                          <span className="min-w-0 flex-1 truncate text-xs text-[var(--text-secondary)]">
+                            {evt.title}
+                          </span>
+                          {evt.time && (
+                            <span className="shrink-0 text-[11px] text-[var(--text-tertiary)]">
+                              {fmtTime(evt.time)}
+                            </span>
+                          )}
+                          {evt.courseName && (
+                            <CourseBadge name={evt.courseName} />
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+              {days.length > 5 && (
+                <p className="text-[11px] text-[var(--text-tertiary)]">
+                  +{days.length - 5} more days
+                </p>
+              )}
+            </div>
+          )}
+          {upcomingDeadlines && upcomingDeadlines.length > 0 && (
+            <div className="mt-2 border-t border-[var(--border-subtle)] pt-2">
+              <p className="text-[11px] font-medium text-amber-600 dark:text-amber-400">
+                Upcoming deadlines
+              </p>
+              <div className="mt-0.5 space-y-0.5">
+                {upcomingDeadlines.slice(0, 4).map((d, i) => (
+                  <div
+                    key={i}
+                    className="flex items-center gap-2 text-[11px] text-[var(--text-tertiary)]"
+                  >
+                    <span
+                      className={cn(
+                        "h-1.5 w-1.5 shrink-0 rounded-full",
+                        getTypeDotColor(d.type),
+                      )}
+                    />
+                    <span className="min-w-0 flex-1 truncate">{d.title}</span>
+                    <span className="shrink-0">{fmtDate(d.date)}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          {totalEvents === 0 && (!days || days.length === 0) && (
+            <p className="mt-1 text-[11px] text-[var(--text-tertiary)]">
+              Nothing scheduled
+            </p>
+          )}
+        </ResultCard>
+      );
+    }
+
+    case "check_conflicts": {
+      const hasConflict = output.hasConflict as boolean;
+      const conflicts = output.conflicts as
+        | Array<{
+            id: string;
+            title: string;
+            time: string | null;
+            type: string;
+            courseName: string | null;
+          }>
+        | undefined;
+      const proposedSlot = output.proposedSlot as
+        | { date: string; time: string; durationMinutes: number }
+        | undefined;
+
+      if (!hasConflict) {
+        return (
+          <ResultCard
+            borderColor="border-l-green-500"
+            icon={Check}
+            iconColor="text-green-600"
+          >
+            <p className="text-xs font-medium text-[var(--text-primary)]">
+              No conflicts
+            </p>
+            {proposedSlot && (
+              <p className="mt-0.5 text-[11px] text-[var(--text-tertiary)]">
+                {fmtDate(proposedSlot.date)} at {fmtTime(proposedSlot.time)} is
+                free
+              </p>
+            )}
+          </ResultCard>
+        );
+      }
+
+      return (
+        <ResultCard
+          borderColor="border-l-amber-500"
+          icon={AlertTriangle}
+          iconColor="text-amber-600"
+        >
+          <p className="text-xs font-medium text-[var(--text-primary)]">
+            {conflicts?.length || 1} conflict
+            {(conflicts?.length || 1) !== 1 ? "s" : ""} found
+          </p>
+          {conflicts && conflicts.length > 0 && (
+            <div className="mt-1.5 space-y-0.5">
+              {conflicts.map((c) => (
+                <div
+                  key={c.id}
+                  className="flex items-center gap-2 text-[11px] text-[var(--text-secondary)]"
+                >
+                  <span
+                    className={cn(
+                      "h-1.5 w-1.5 shrink-0 rounded-full",
+                      getTypeDotColor(c.type),
+                    )}
+                  />
+                  <span className="truncate">{c.title}</span>
+                  {c.time && (
+                    <span className="shrink-0 text-[var(--text-tertiary)]">
+                      {fmtTime(c.time)}
+                    </span>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </ResultCard>
+      );
+    }
+
+    case "undo_last_action": {
+      const undoneAction = output.undoneAction as string;
+      const description = output.description as string;
+      const actionLabel =
+        undoneAction === "create"
+          ? "Creation undone"
+          : undoneAction === "modify"
+            ? "Edit reverted"
+            : undoneAction === "delete"
+              ? "Deletion undone"
+              : "Action undone";
+      return (
+        <ResultCard
+          borderColor="border-l-blue-500"
+          icon={Undo2}
+          iconColor="text-blue-600"
+        >
+          <p className="text-xs font-medium text-[var(--text-primary)]">
+            {actionLabel}
+          </p>
+          <p className="mt-0.5 text-[11px] text-[var(--text-tertiary)]">
+            {description}
           </p>
         </ResultCard>
       );
@@ -410,7 +690,7 @@ function ResultCard({
     <div
       className={cn(
         "animate-fade-in rounded-xl border border-[var(--border-subtle)] border-l-[3px] bg-surface-secondary p-3 shadow-sm",
-        borderColor
+        borderColor,
       )}
     >
       <div className="flex items-start gap-2.5">
