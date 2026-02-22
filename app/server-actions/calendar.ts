@@ -6,6 +6,41 @@ import { getCalendarClient, getGoogleAccessTokenForUser } from "@/lib/google";
 import { prisma } from "@/lib/db";
 import { updateEvent } from "@/app/server-actions/events";
 
+/**
+ * Estimate event duration in minutes based on type.
+ * Used for Google Calendar sync when no explicit end time is available.
+ */
+function estimateEventDuration(type: string): number {
+  switch (type) {
+    case "exam":
+      return 120;
+    case "lecture":
+      return 75;
+    case "lab":
+      return 150;
+    case "quiz":
+      return 30;
+    case "study":
+      return 90;
+    case "project":
+      return 90;
+    default:
+      return 60;
+  }
+}
+
+/**
+ * Add minutes to an HH:MM time string.
+ * Returns the resulting HH:MM string.
+ */
+function addMinutesToTimeString(time: string, minutes: number): string {
+  const [h, m] = time.split(":").map(Number);
+  const total = h * 60 + m + minutes;
+  const newH = Math.floor(total / 60) % 24;
+  const newM = total % 60;
+  return `${String(newH).padStart(2, "0")}:${String(newM).padStart(2, "0")}`;
+}
+
 function addDays(isoDate: string, days: number) {
   const [y, m, d] = isoDate.split("-").map(Number);
   const dt = new Date(Date.UTC(y, m - 1, d));
@@ -18,7 +53,7 @@ function addDays(isoDate: string, days: number) {
 
 export async function removeFromGoogleCalendar(
   accessToken: string,
-  googleEventId: string
+  googleEventId: string,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   try {
     const calendar = getCalendarClient(accessToken);
@@ -33,7 +68,10 @@ export async function removeFromGoogleCalendar(
     if (error.code === 404 || error.code === 410) {
       return { ok: true };
     }
-    return { ok: false, error: error.message ?? "Failed to remove from Google Calendar." };
+    return {
+      ok: false,
+      error: error.message ?? "Failed to remove from Google Calendar.",
+    };
   }
 }
 
@@ -54,14 +92,22 @@ export async function getUnsyncedEventIds(): Promise<
       select: { id: true },
     });
 
-    return { ok: true, eventIds: events.map((e) => e.id), count: events.length };
+    return {
+      ok: true,
+      eventIds: events.map((e) => e.id),
+      count: events.length,
+    };
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : "Failed to fetch unsynced events." };
+    return {
+      ok: false,
+      error:
+        e instanceof Error ? e.message : "Failed to fetch unsynced events.",
+    };
   }
 }
 
 export async function syncEventsToCalendar(
-  eventIds: string[]
+  eventIds: string[],
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   try {
     const session = await getServerSession(authOptions);
@@ -73,7 +119,10 @@ export async function syncEventsToCalendar(
 
     const accessToken = await getGoogleAccessTokenForUser(userId);
     if (!accessToken) {
-      return { ok: false, error: "No Google Calendar access. Please re-authenticate." };
+      return {
+        ok: false,
+        error: "No Google Calendar access. Please re-authenticate.",
+      };
     }
 
     // Fetch events from database by IDs (scoped to user)
@@ -95,22 +144,40 @@ export async function syncEventsToCalendar(
 
     // Insert each event to Google Calendar and update database with googleEventId
     for (const event of events) {
-      const startDate = event.date;
-      const endDate = addDays(event.date, 1);
+      const descriptionParts = [
+        event.type.charAt(0).toUpperCase() + event.type.slice(1),
+        event.description,
+        event.course
+          ? `Course: ${event.course.name} (${event.course.code})`
+          : "",
+      ].filter(Boolean);
+
+      // Use timed event format if event has a time, otherwise all-day
+      const hasTime = event.time !== null;
+      const requestBody = hasTime
+        ? {
+            summary: event.title,
+            description: descriptionParts.join("\n\n"),
+            start: {
+              dateTime: `${event.date}T${event.time}:00`,
+              timeZone: "America/New_York",
+            },
+            end: {
+              dateTime: `${event.date}T${addMinutesToTimeString(event.time!, estimateEventDuration(event.type))}:00`,
+              timeZone: "America/New_York",
+            },
+          }
+        : {
+            summary: event.title,
+            description: descriptionParts.join("\n\n"),
+            start: { date: event.date },
+            end: { date: addDays(event.date, 1) },
+          };
 
       // Insert to Google Calendar
       const response = await calendar.events.insert({
         calendarId: "primary",
-        requestBody: {
-          summary: event.title,
-          description: [
-            event.type,
-            event.description,
-            event.course ? `Course: ${event.course.name} (${event.course.code})` : "",
-          ].filter(Boolean).join("\n\n"),
-          start: { date: startDate },
-          end: { date: endDate },
-        },
+        requestBody,
       });
 
       const googleEventId = response.data.id;
@@ -125,6 +192,9 @@ export async function syncEventsToCalendar(
 
     return { ok: true };
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : "Calendar sync failed." };
+    return {
+      ok: false,
+      error: e instanceof Error ? e.message : "Calendar sync failed.",
+    };
   }
 }

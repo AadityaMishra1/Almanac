@@ -1,6 +1,6 @@
 "use client";
 
-import { CalendarDays, Calendar, Clock, BookOpen, Sparkles } from "lucide-react";
+import { CalendarDays, Calendar, Clock, Search, Cloud } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 interface ChatEmptyStateProps {
@@ -8,10 +8,10 @@ interface ChatEmptyStateProps {
 }
 
 const suggestions: { text: string; icon: LucideIcon }[] = [
-  { text: "Add a study session for tomorrow at 3pm", icon: Calendar },
-  { text: "Delete my quiz on Friday", icon: Clock },
-  { text: "Add weekly lectures every Tuesday for CSC 316", icon: BookOpen },
-  { text: "Sync all events to Google Calendar", icon: Sparkles },
+  { text: "What does my schedule look like today?", icon: Calendar },
+  { text: "Block MWF 2-3pm for study time", icon: Clock },
+  { text: "Am I free Thursday afternoon?", icon: Search },
+  { text: "Sync everything to Google Calendar", icon: Cloud },
 ];
 
 export function ChatEmptyState({ onSuggestion }: ChatEmptyStateProps) {
@@ -35,7 +35,10 @@ export function ChatEmptyState({ onSuggestion }: ChatEmptyStateProps) {
             <button
               key={suggestion.text}
               onClick={() => onSuggestion(suggestion.text)}
-              style={{ animationDelay: `${i * 75}ms`, animationFillMode: "backwards" }}
+              style={{
+                animationDelay: `${i * 75}ms`,
+                animationFillMode: "backwards",
+              }}
               className="flex items-center gap-2 rounded-lg border border-[var(--border-subtle)] bg-surface px-3 py-2 text-left text-xs text-[var(--text-secondary)] transition-all duration-150 animate-fade-in-up hover:border-[var(--border)] hover:bg-surface-secondary hover:text-[var(--text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20"
             >
               <Icon className="h-3.5 w-3.5 shrink-0 text-[var(--text-tertiary)]" />
