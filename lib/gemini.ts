@@ -1,27 +1,5 @@
 import { GoogleGenAI } from "@google/genai";
-
-function stripCodeFences(text: string): string {
-  return text.replace(/```json/gi, "").replace(/```/g, "").trim();
-}
-
-function extractJsonCandidate(text: string): string {
-  const trimmed = text.trim();
-  if (!trimmed) return "";
-
-  const arrayStart = trimmed.indexOf("[");
-  const arrayEnd = trimmed.lastIndexOf("]");
-  if (arrayStart !== -1 && arrayEnd !== -1 && arrayEnd > arrayStart) {
-    return trimmed.slice(arrayStart, arrayEnd + 1);
-  }
-
-  const objStart = trimmed.indexOf("{");
-  const objEnd = trimmed.lastIndexOf("}");
-  if (objStart !== -1 && objEnd !== -1 && objEnd > objStart) {
-    return trimmed.slice(objStart, objEnd + 1);
-  }
-
-  return trimmed;
-}
+import { stripCodeFences, extractJsonCandidate } from "@/lib/json-utils";
 
 /**
  * Extract syllabus events from a PDF using Gemini Vision.
@@ -30,7 +8,7 @@ function extractJsonCandidate(text: string): string {
  */
 export async function extractEventsFromPdfWithVision(
   buffer: Buffer,
-  filename?: string
+  filename?: string,
 ): Promise<unknown> {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) return null;

@@ -24,12 +24,13 @@ import type { HumanInTheLoopUIMessage } from "@/app/api/chat/types";
 // HITL tools that require user confirmation before executing
 const toolsRequiringConfirmation = ["delete_event", "bulk_delete_events"];
 
-function hasToolResults(messages: { parts?: { type: string; state?: string }[] }[]): boolean {
+function hasToolResults(
+  messages: { parts?: { type: string; state?: string }[] }[],
+): boolean {
   return messages.some((m) =>
     m.parts?.some(
-      (part) =>
-        part.type === "tool" && part.state === "output-available"
-    )
+      (part) => part.type === "tool" && part.state === "output-available",
+    ),
   );
 }
 
@@ -38,12 +39,19 @@ export function ChatPanel() {
   const manualOverrideRef = useRef(false);
   const prevToolCountRef = useRef(0);
 
-  const { messages, addToolOutput, sendMessage, setMessages, status, error, stop } =
-    useChat<HumanInTheLoopUIMessage>({
-      transport: new DefaultChatTransport({
-        api: "/api/chat",
-      }),
-    });
+  const {
+    messages,
+    addToolOutput,
+    sendMessage,
+    setMessages,
+    status,
+    error,
+    stop,
+  } = useChat<HumanInTheLoopUIMessage>({
+    transport: new DefaultChatTransport({
+      api: "/api/chat",
+    }),
+  });
 
   const isLoading = status === "streaming" || status === "submitted";
 
@@ -53,8 +61,8 @@ export function ChatPanel() {
       (part) =>
         isStaticToolUIPart(part) &&
         part.state === "input-available" &&
-        toolsRequiringConfirmation.includes(getStaticToolName(part))
-    )
+        toolsRequiringConfirmation.includes(getStaticToolName(part)),
+    ),
   );
 
   // Smart auto-sizing: expand on open if messages have tool results
@@ -65,7 +73,7 @@ export function ChatPanel() {
         setPanelSize("expanded");
       }
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
 
   // Smart auto-sizing: expand when new tool results arrive
@@ -76,13 +84,15 @@ export function ChatPanel() {
       return (
         count +
         (m.parts?.filter(
-          (p) =>
-            isStaticToolUIPart(p) && p.state === "output-available"
+          (p) => isStaticToolUIPart(p) && p.state === "output-available",
         ).length ?? 0)
       );
     }, 0);
 
-    if (currentToolCount > prevToolCountRef.current && panelSize === "compact") {
+    if (
+      currentToolCount > prevToolCountRef.current &&
+      panelSize === "compact"
+    ) {
       setPanelSize("expanded");
     }
     prevToolCountRef.current = currentToolCount;
@@ -108,14 +118,7 @@ export function ChatPanel() {
     (text: string) => {
       sendMessage({ text });
     },
-    [sendMessage]
-  );
-
-  const handleSuggestion = useCallback(
-    (text: string) => {
-      sendMessage({ text });
-    },
-    [sendMessage]
+    [sendMessage],
   );
 
   const handleClear = useCallback(() => {
@@ -150,7 +153,7 @@ export function ChatPanel() {
           "fixed inset-0 z-50 animate-fade-in",
           isFullscreen
             ? "bg-black/30 backdrop-blur-sm"
-            : "bg-black/20 backdrop-blur-sm"
+            : "bg-black/20 backdrop-blur-sm",
         )}
         onClick={() => setOpen(false)}
         aria-hidden
@@ -180,7 +183,7 @@ export function ChatPanel() {
                 toolsRequiringConfirmation={toolsRequiringConfirmation}
                 addToolOutput={addToolOutput}
                 sendMessage={sendMessage}
-                onSuggestion={handleSuggestion}
+                onSuggestion={handleSend}
               />
             </div>
             <ChatInput
@@ -197,7 +200,7 @@ export function ChatPanel() {
           aria-label="Greg - Calendar Assistant"
           className={cn(
             "fixed right-0 top-0 z-50 flex h-full w-full flex-col border-l border-[var(--border-subtle)] bg-surface shadow-2xl animate-slide-in-right transition-[width] duration-300 ease-in-out",
-            panelSize === "compact" ? "sm:w-[420px]" : "sm:w-[640px]"
+            panelSize === "compact" ? "sm:w-[420px]" : "sm:w-[640px]",
           )}
         >
           <PanelHeader
@@ -216,7 +219,7 @@ export function ChatPanel() {
               toolsRequiringConfirmation={toolsRequiringConfirmation}
               addToolOutput={addToolOutput}
               sendMessage={sendMessage}
-              onSuggestion={handleSuggestion}
+              onSuggestion={handleSend}
             />
           </div>
           <ChatInput
@@ -257,7 +260,7 @@ function PanelHeader({
     <div
       className={cn(
         "flex items-center justify-between border-b border-[var(--border-subtle)] px-5 py-3.5",
-        isFullscreen && "rounded-t-2xl"
+        isFullscreen && "rounded-t-2xl",
       )}
     >
       <div className="flex items-center gap-2.5">
@@ -304,10 +307,7 @@ function PanelHeader({
           )}
         </button>
 
-        <button
-          onClick={onClose}
-          className={iconBtnClass}
-        >
+        <button onClick={onClose} className={iconBtnClass}>
           <X className="h-4 w-4" />
         </button>
       </div>

@@ -1,7 +1,11 @@
 "use server";
 
 import { prisma } from "@/lib/db";
-import { CreateEventSchema, UpdateEventSchema, canModifyEvent } from "@/lib/events";
+import {
+  CreateEventSchema,
+  UpdateEventSchema,
+  canModifyEvent,
+} from "@/lib/events";
 import { EventSource } from "@prisma/client";
 import type { Event } from "@prisma/client";
 import { getServerSession } from "next-auth";
@@ -14,7 +18,7 @@ import { getGoogleAccessTokenForUser } from "@/lib/google";
  * Always sets editable based on source (ALMANAC = true, GOOGLE_CALENDAR = false).
  */
 export async function createEvent(
-  input: unknown
+  input: unknown,
 ): Promise<{ ok: true; event: Event } | { ok: false; error: string }> {
   try {
     const session = await getServerSession(authOptions);
@@ -25,7 +29,10 @@ export async function createEvent(
     const userId = session.user.id;
     const parsed = CreateEventSchema.safeParse(input);
     if (!parsed.success) {
-      return { ok: false, error: "Invalid event data: " + parsed.error.message };
+      return {
+        ok: false,
+        error: "Invalid event data: " + parsed.error.message,
+      };
     }
 
     const data = parsed.data;
@@ -64,7 +71,10 @@ export async function createEvent(
 
     return { ok: true, event };
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : "Failed to create event." };
+    return {
+      ok: false,
+      error: e instanceof Error ? e.message : "Failed to create event.",
+    };
   }
 }
 
@@ -74,7 +84,7 @@ export async function createEvent(
  */
 export async function updateEvent(
   eventId: string,
-  updates: unknown
+  updates: unknown,
 ): Promise<{ ok: true; event: Event } | { ok: false; error: string }> {
   try {
     const session = await getServerSession(authOptions);
@@ -84,7 +94,10 @@ export async function updateEvent(
 
     const parsed = UpdateEventSchema.safeParse(updates);
     if (!parsed.success) {
-      return { ok: false, error: "Invalid update data: " + parsed.error.message };
+      return {
+        ok: false,
+        error: "Invalid update data: " + parsed.error.message,
+      };
     }
 
     const userId = session.user.id;
@@ -101,7 +114,8 @@ export async function updateEvent(
     if (!canModifyEvent(existing)) {
       return {
         ok: false,
-        error: "Cannot modify external Google Calendar events. This event is read-only.",
+        error:
+          "Cannot modify external Google Calendar events. This event is read-only.",
       };
     }
 
@@ -116,7 +130,10 @@ export async function updateEvent(
 
     return { ok: true, event };
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : "Failed to update event." };
+    return {
+      ok: false,
+      error: e instanceof Error ? e.message : "Failed to update event.",
+    };
   }
 }
 
@@ -126,7 +143,7 @@ export async function updateEvent(
  * Also removes the event from Google Calendar if it was synced.
  */
 export async function deleteEvent(
-  eventId: string
+  eventId: string,
 ): Promise<
   | { ok: true; googleSyncResult: "removed" | "not_synced" | "failed" }
   | { ok: false; error: string }
@@ -151,7 +168,8 @@ export async function deleteEvent(
     if (!canModifyEvent(existing)) {
       return {
         ok: false,
-        error: "Cannot delete external Google Calendar events. This event is read-only.",
+        error:
+          "Cannot delete external Google Calendar events. This event is read-only.",
       };
     }
 
@@ -163,7 +181,7 @@ export async function deleteEvent(
     if (existing.googleEventId && accessToken) {
       const gcResult = await removeFromGoogleCalendar(
         accessToken,
-        existing.googleEventId
+        existing.googleEventId,
       );
       googleSyncResult = gcResult.ok ? "removed" : "failed";
     }
@@ -175,72 +193,10 @@ export async function deleteEvent(
 
     return { ok: true, googleSyncResult };
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : "Failed to delete event." };
-  }
-}
-
-/**
- * Delete all events for a given course.
- * Enforces auth and course ownership.
- * Also removes synced events from Google Calendar.
- */
-export async function deleteEventsByCourse(
-  courseId: string
-): Promise<
-  | { ok: true; count: number; googleRemoved: number; googleFailed: number }
-  | { ok: false; error: string }
-> {
-  try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
-      return { ok: false, error: "Not authenticated" };
-    }
-
-    const userId = session.user.id;
-
-    const course = await prisma.course.findFirst({
-      where: { id: courseId, userId },
-    });
-
-    if (!course) {
-      return { ok: false, error: "Course not found or access denied" };
-    }
-
-    // Query synced events BEFORE deleting from DB
-    const syncedEvents = await prisma.event.findMany({
-      where: { courseId, userId, googleEventId: { not: null } },
-      select: { googleEventId: true },
-    });
-
-    // Batch-remove from Google Calendar
-    let googleRemoved = 0;
-    let googleFailed = 0;
-    const accessTokenForBatch = syncedEvents.length > 0
-      ? await getGoogleAccessTokenForUser(userId)
-      : null;
-    if (syncedEvents.length > 0 && accessTokenForBatch) {
-      const results = await Promise.allSettled(
-        syncedEvents.map((evt) =>
-          removeFromGoogleCalendar(accessTokenForBatch, evt.googleEventId!)
-        )
-      );
-      for (const result of results) {
-        if (result.status === "fulfilled" && result.value.ok) {
-          googleRemoved++;
-        } else {
-          googleFailed++;
-        }
-      }
-    }
-
-    // Always proceed with DB delete
-    const result = await prisma.event.deleteMany({
-      where: { courseId, userId },
-    });
-
-    return { ok: true, count: result.count, googleRemoved, googleFailed };
-  } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : "Failed to delete events." };
+    return {
+      ok: false,
+      error: e instanceof Error ? e.message : "Failed to delete event.",
+    };
   }
 }
 
@@ -275,12 +231,15 @@ export async function getEvents(filters?: {
         course: true, // Include course data for display
       },
       orderBy: {
-        date: 'asc', // Chronological order
+        date: "asc", // Chronological order
       },
     });
 
     return { ok: true, events };
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : "Failed to fetch events." };
+    return {
+      ok: false,
+      error: e instanceof Error ? e.message : "Failed to fetch events.",
+    };
   }
 }
