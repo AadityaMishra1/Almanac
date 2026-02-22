@@ -1,9 +1,9 @@
-import { create } from 'zustand';
+import { create } from "zustand";
 
 interface Notification {
   id: string;
   message: string;
-  type: 'info' | 'success' | 'warning' | 'error';
+  type: "info" | "success" | "warning" | "error";
   read: boolean;
   createdAt: string;
 }
@@ -11,11 +11,12 @@ interface Notification {
 interface NotificationState {
   notifications: Notification[];
   unreadCount: number;
-  addNotification: (notification: Omit<Notification, 'id' | 'read' | 'createdAt'>) => void;
+  addNotification: (
+    notification: Omit<Notification, "id" | "read" | "createdAt">,
+  ) => void;
   markAsRead: (id: string) => void;
   clearAll: () => void;
   setNotifications: (notifications: Notification[]) => void;
-  setUnreadCount: (count: number) => void;
 }
 
 export const useNotificationStore = create<NotificationState>((set, get) => ({
@@ -36,7 +37,7 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
   markAsRead: (id) => {
     set((state) => ({
       notifications: state.notifications.map((n) =>
-        n.id === id ? { ...n, read: true } : n
+        n.id === id ? { ...n, read: true } : n,
       ),
       unreadCount: Math.max(0, state.unreadCount - 1),
     }));
@@ -48,16 +49,13 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
     const unreadCount = notifications.filter((n) => !n.read).length;
     set({ notifications, unreadCount });
   },
-  setUnreadCount: (count) => {
-    set({ unreadCount: count });
-  },
 }));
 
 // ─── Chat Store ─────────────────────────────────────────────────────────────
 // Messages and loading state are now managed by the AI SDK's useChat hook.
 // This store only tracks panel open/close and calendar refresh versioning.
 
-type PanelSize = 'compact' | 'expanded' | 'fullscreen';
+type PanelSize = "compact" | "expanded" | "fullscreen";
 
 interface ChatState {
   isOpen: boolean;
@@ -67,7 +65,6 @@ interface ChatState {
   toggleChat: () => void;
   setOpen: (open: boolean) => void;
   setPanelSize: (size: PanelSize) => void;
-  cyclePanelSize: () => void;
   bumpCalendarVersion: () => void;
   highlightEvents: (ids: string[]) => void;
   clearHighlights: () => void;
@@ -75,35 +72,26 @@ interface ChatState {
 
 export const useChatStore = create<ChatState>((set) => ({
   isOpen: false,
-  panelSize: 'compact',
+  panelSize: "compact",
   calendarVersion: 0,
   highlightedEventIds: new Set(),
   toggleChat: () =>
     set((state) => ({
       isOpen: !state.isOpen,
       // Reset to compact when closing via toggle
-      ...(!state.isOpen ? {} : { panelSize: 'compact' as PanelSize }),
+      ...(!state.isOpen ? {} : { panelSize: "compact" as PanelSize }),
     })),
   setOpen: (open) => {
     if (open) {
       set({ isOpen: true });
     } else {
       // Reset to compact on close
-      set({ isOpen: false, panelSize: 'compact' });
+      set({ isOpen: false, panelSize: "compact" });
     }
   },
   setPanelSize: (size) => set({ panelSize: size }),
-  cyclePanelSize: () =>
-    set((state) => {
-      const cycle: Record<PanelSize, PanelSize> = {
-        compact: 'expanded',
-        expanded: 'fullscreen',
-        fullscreen: 'compact',
-      };
-      return { panelSize: cycle[state.panelSize] };
-    }),
-  bumpCalendarVersion: () => set((state) => ({ calendarVersion: state.calendarVersion + 1 })),
+  bumpCalendarVersion: () =>
+    set((state) => ({ calendarVersion: state.calendarVersion + 1 })),
   highlightEvents: (ids) => set({ highlightedEventIds: new Set(ids) }),
   clearHighlights: () => set({ highlightedEventIds: new Set() }),
 }));
-

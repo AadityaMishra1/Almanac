@@ -28,7 +28,12 @@ yarn-error.log*
 Thumbs.db
 .vscode/
 .idea/
+.cursor/
 *.swp
+
+# Development artifacts
+.planning/
+.playwright-mcp/
 
 # Misc
 .turbo/

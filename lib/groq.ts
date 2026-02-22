@@ -1,33 +1,11 @@
 import { SyllabusEvent } from "@/lib/events";
+import { stripCodeFences, extractJsonCandidate } from "@/lib/json-utils";
 
 type GroqChatCompletionResponse = {
   choices: Array<{
     message: { content?: string | null };
   }>;
 };
-
-function stripCodeFences(text: string) {
-  return text.replace(/```json/gi, "").replace(/```/g, "").trim();
-}
-
-function extractJsonCandidate(text: string) {
-  const trimmed = text.trim();
-  if (!trimmed) return "";
-
-  const arrayStart = trimmed.indexOf("[");
-  const arrayEnd = trimmed.lastIndexOf("]");
-  if (arrayStart !== -1 && arrayEnd !== -1 && arrayEnd > arrayStart) {
-    return trimmed.slice(arrayStart, arrayEnd + 1);
-  }
-
-  const objStart = trimmed.indexOf("{");
-  const objEnd = trimmed.lastIndexOf("}");
-  if (objStart !== -1 && objEnd !== -1 && objEnd > objStart) {
-    return trimmed.slice(objStart, objEnd + 1);
-  }
-
-  return trimmed;
-}
 
 function safeParseJson(text: string) {
   try {
@@ -41,7 +19,9 @@ function safeParseJson(text: string) {
   }
 }
 
-export async function extractEventsFromSyllabusText(text: string): Promise<SyllabusEvent[] | unknown> {
+export async function extractEventsFromSyllabusText(
+  text: string,
+): Promise<SyllabusEvent[] | unknown> {
   const apiKey = process.env.GROQ_API_KEY;
   if (!apiKey) throw new Error("Missing GROQ_API_KEY env var.");
 
@@ -55,23 +35,27 @@ export async function extractEventsFromSyllabusText(text: string): Promise<Sylla
     "Do not include class meeting times.",
     "",
     "SYLLABUS TEXT:",
-    text
+    text,
   ].join("\n");
 
   const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
     method: "POST",
     headers: {
       Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json"
+      "Content-Type": "application/json",
     },
     body: JSON.stringify({
       model: process.env.GROQ_MODEL ?? "llama-3.1-8b-instant",
       temperature: 0,
       messages: [
-        { role: "system", content: "You are a careful information extractor that outputs JSON only." },
-        { role: "user", content: prompt }
-      ]
-    })
+        {
+          role: "system",
+          content:
+            "You are a careful information extractor that outputs JSON only.",
+        },
+        { role: "user", content: prompt },
+      ],
+    }),
   });
 
   if (!res.ok) {
