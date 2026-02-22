@@ -2,10 +2,17 @@
 
 import Link from "next/link";
 import { useSession, signIn } from "next-auth/react";
+import { useState, useCallback } from "react";
 import { SyllabusToCalendar } from "@/components/syllabus-to-calendar";
 
 export default function Page() {
   const { data: session, status } = useSession();
+  const [signingIn, setSigningIn] = useState(false);
+
+  const handleSignIn = useCallback(() => {
+    setSigningIn(true);
+    signIn("google");
+  }, []);
 
   if (status === "loading") {
     return (
@@ -28,8 +35,8 @@ export default function Page() {
               className="text-base sm:text-lg text-[var(--text-secondary)] mb-4 max-w-md opacity-0 animate-fade-in-up [animation-fill-mode:forwards]"
               style={{ animationDelay: "100ms" }}
             >
-              Drop your syllabus, we&apos;ll handle the rest. AI-powered calendar app
-              for college students.
+              Drop your syllabus, we&apos;ll handle the rest. AI-powered
+              calendar app for college students.
             </p>
 
             <div
@@ -97,8 +104,8 @@ export default function Page() {
             className="text-lg text-[var(--text-secondary)] max-w-md mx-auto mb-8 opacity-0 animate-fade-in-up [animation-fill-mode:forwards]"
             style={{ animationDelay: "100ms" }}
           >
-            Drop your syllabus. Every exam, assignment, and due date
-            lands on your Google Calendar in seconds.
+            Drop your syllabus. Every exam, assignment, and due date lands on
+            your Google Calendar in seconds.
           </p>
 
           <div
@@ -106,10 +113,18 @@ export default function Page() {
             style={{ animationDelay: "200ms" }}
           >
             <button
-              onClick={() => signIn("google")}
-              className="rounded-xl bg-brand-600 px-6 py-3 text-base font-medium text-white transition-all duration-150 hover:bg-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40 hover:shadow-lg"
+              onClick={handleSignIn}
+              disabled={signingIn}
+              className="rounded-xl bg-brand-600 px-6 py-3 text-base font-medium text-white transition-all duration-150 hover:bg-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40 hover:shadow-lg disabled:opacity-70"
             >
-              Get started
+              {signingIn ? (
+                <span className="flex items-center gap-2">
+                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                  Redirecting…
+                </span>
+              ) : (
+                "Get started"
+              )}
             </button>
           </div>
         </div>

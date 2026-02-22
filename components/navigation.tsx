@@ -3,11 +3,21 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signIn, signOut, useSession } from "next-auth/react";
-import { Upload, Calendar, Settings, LogOut, Shield, FileText, Sun, Moon, Info } from "lucide-react";
+import {
+  Upload,
+  Calendar,
+  Settings,
+  LogOut,
+  Shield,
+  FileText,
+  Sun,
+  Moon,
+  Info,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useChatStore } from "@/lib/store";
 import { useTheme } from "next-themes";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -23,8 +33,14 @@ export function Navigation() {
   const { isOpen: chatOpen, toggleChat } = useChatStore();
   const { resolvedTheme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
+  const [signingIn, setSigningIn] = useState(false);
 
   useEffect(() => setMounted(true), []);
+
+  const handleSignIn = useCallback(() => {
+    setSigningIn(true);
+    signIn("google");
+  }, []);
 
   const isActive = (path: string) => pathname === path;
 
@@ -47,7 +63,7 @@ export function Navigation() {
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20",
                 isActive("/")
                   ? "bg-surface-tertiary text-[var(--text-primary)]"
-                  : "text-[var(--text-secondary)] hover:bg-surface-secondary hover:text-[var(--text-primary)]"
+                  : "text-[var(--text-secondary)] hover:bg-surface-secondary hover:text-[var(--text-primary)]",
               )}
             >
               <Upload className="h-4 w-4" />
@@ -60,7 +76,7 @@ export function Navigation() {
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20",
                 isActive("/dashboard")
                   ? "bg-surface-tertiary text-[var(--text-primary)]"
-                  : "text-[var(--text-secondary)] hover:bg-surface-secondary hover:text-[var(--text-primary)]"
+                  : "text-[var(--text-secondary)] hover:bg-surface-secondary hover:text-[var(--text-primary)]",
               )}
             >
               <Calendar className="h-4 w-4" />
@@ -72,7 +88,9 @@ export function Navigation() {
         <div className="flex items-center gap-3">
           {mounted && (
             <button
-              onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
+              onClick={() =>
+                setTheme(resolvedTheme === "dark" ? "light" : "dark")
+              }
               className="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--text-secondary)] transition-all duration-150 hover:bg-surface-secondary hover:text-[var(--text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20"
               aria-label="Toggle theme"
             >
@@ -92,7 +110,7 @@ export function Navigation() {
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20",
                 chatOpen
                   ? "bg-surface-tertiary text-[var(--text-primary)]"
-                  : "text-[var(--text-secondary)] hover:bg-surface-secondary hover:text-[var(--text-primary)]"
+                  : "text-[var(--text-secondary)] hover:bg-surface-secondary hover:text-[var(--text-primary)]",
               )}
             >
               <span className="hidden sm:inline">Greg</span>
@@ -114,7 +132,9 @@ export function Navigation() {
                     />
                   ) : (
                     <div className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-100 text-sm font-medium text-brand-700">
-                      {session.user?.name?.[0] || session.user?.email?.[0] || "U"}
+                      {session.user?.name?.[0] ||
+                        session.user?.email?.[0] ||
+                        "U"}
                     </div>
                   )}
                 </button>
@@ -132,25 +152,37 @@ export function Navigation() {
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
-                  <Link href="/settings" className="flex items-center gap-2 cursor-pointer">
+                  <Link
+                    href="/settings"
+                    className="flex items-center gap-2 cursor-pointer"
+                  >
                     <Settings className="h-4 w-4" />
                     Settings
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
-                  <Link href="/privacy" className="flex items-center gap-2 cursor-pointer">
+                  <Link
+                    href="/privacy"
+                    className="flex items-center gap-2 cursor-pointer"
+                  >
                     <Shield className="h-4 w-4" />
                     Privacy Policy
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
-                  <Link href="/terms" className="flex items-center gap-2 cursor-pointer">
+                  <Link
+                    href="/terms"
+                    className="flex items-center gap-2 cursor-pointer"
+                  >
                     <FileText className="h-4 w-4" />
                     Terms of Service
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
-                  <Link href="/about" className="flex items-center gap-2 cursor-pointer">
+                  <Link
+                    href="/about"
+                    className="flex items-center gap-2 cursor-pointer"
+                  >
                     <Info className="h-4 w-4" />
                     About
                   </Link>
@@ -167,10 +199,18 @@ export function Navigation() {
             </DropdownMenu>
           ) : (
             <button
-              onClick={() => signIn("google")}
-              className="rounded-lg bg-brand-600 px-4 py-1.5 text-sm font-medium text-white transition-all duration-150 hover:bg-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20"
+              onClick={handleSignIn}
+              disabled={signingIn}
+              className="rounded-lg bg-brand-600 px-4 py-1.5 text-sm font-medium text-white transition-all duration-150 hover:bg-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/20 disabled:opacity-70"
             >
-              Sign in
+              {signingIn ? (
+                <span className="flex items-center gap-2">
+                  <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                  Signing in…
+                </span>
+              ) : (
+                "Sign in"
+              )}
             </button>
           )}
         </div>
