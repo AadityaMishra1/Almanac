@@ -49,7 +49,7 @@ export const metadata: Metadata = {
       "Upload a syllabus PDF, AI extracts deadlines and exams, sync to Google Calendar in seconds.",
   },
   verification: {
-    google: "DOF2vK4dA2URwZnf9BQuwIN3qEz43zoVgK3dyIociF8",
+    google: "YX4uAEbKN7_7jQf_rUBNf6NBlzYWd8l1PVUZS2wT2mA",
   },
 };
 
