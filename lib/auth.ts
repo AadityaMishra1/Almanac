@@ -2,7 +2,7 @@ import type { NextAuthOptions } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
 import { prisma } from "@/lib/db";
 
-const CALENDAR_SCOPE = "https://www.googleapis.com/auth/calendar";
+const CALENDAR_SCOPE = "https://www.googleapis.com/auth/calendar.events";
 
 export const authOptions: NextAuthOptions = {
   session: { strategy: "jwt" },
