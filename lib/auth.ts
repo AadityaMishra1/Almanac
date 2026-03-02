@@ -81,12 +81,13 @@ export const authOptions: NextAuthOptions = {
               : undefined,
           },
         });
-
-        return true;
       } catch (error) {
         console.error("Error creating/updating user:", error);
-        return false;
+        // Don't block sign-in on DB errors — user can still get a session
+        // The JWT callback will attempt to fetch userId separately
       }
+
+      return true;
     },
     async jwt({ token, account, user }) {
       // Initial sign-in: persist hasCalendarAccess flag
