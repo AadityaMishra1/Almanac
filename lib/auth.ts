@@ -87,8 +87,7 @@ export const authOptions: NextAuthOptions = {
         });
       } catch (error) {
         console.error("Error creating/updating user:", error);
-        // Don't block sign-in on DB errors — user can still get a session
-        // The JWT callback will attempt to fetch userId separately
+        return false; // Block sign-in — a session without userId is useless
       }
 
       return true;
@@ -109,6 +108,8 @@ export const authOptions: NextAuthOptions = {
           });
           if (dbUser) {
             token.userId = dbUser.id;
+          } else {
+            console.warn("JWT callback: no user found in DB for", token.email);
           }
         } catch (error) {
           console.error(
