@@ -120,8 +120,8 @@ export async function POST(req: Request) {
         z
           .object({
             id: z.string(),
-            role: z.enum(["user", "assistant", "system"]),
-            content: z.string(),
+            role: z.string(),
+            content: z.string().optional().default(""),
             parts: z.array(z.unknown()).optional(),
           })
           .passthrough(),
@@ -132,6 +132,17 @@ export async function POST(req: Request) {
   const body = await req.json();
   const parsed = ChatRequestSchema.safeParse(body);
   if (!parsed.success) {
+    console.error(
+      "[chat] Zod validation failed:",
+      JSON.stringify(parsed.error.issues, null, 2),
+    );
+    console.error("[chat] Request body keys:", Object.keys(body));
+    if (body.messages?.[0]) {
+      console.error(
+        "[chat] First message:",
+        JSON.stringify(body.messages[0], null, 2),
+      );
+    }
     return new Response(JSON.stringify({ error: "Invalid request format" }), {
       status: 400,
     });
@@ -303,6 +314,10 @@ RULES:
 
   const stream = createUIMessageStream({
     originalMessages: messages,
+    onError: (error) => {
+      console.error("[chat] Stream error:", error);
+      return error instanceof Error ? error.message : "Chat stream failed";
+    },
     execute: async ({ writer }) => {
       // Process any pending HITL confirmations
       const processedMessages = await processToolCalls(

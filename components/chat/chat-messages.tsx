@@ -348,7 +348,8 @@ export function ChatMessages({
                 Greg couldn&apos;t respond
               </p>
               <p className="mt-0.5 text-xs text-red-600 dark:text-red-400/80">
-                Something went wrong. Try sending your message again.
+                {error.message ||
+                  "Something went wrong. Try sending your message again."}
               </p>
             </div>
           </div>
