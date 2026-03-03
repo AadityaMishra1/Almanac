@@ -152,9 +152,15 @@ export async function POST(request: Request) {
       events, // Keep for backward compat with current UI (removed in 01-03b)
       partialErrors: errors.length > 0 ? errors : undefined,
     });
-  } catch {
+  } catch (e) {
+    console.error("[parse] Unhandled error:", e);
     return NextResponse.json(
-      { error: "Failed to parse syllabus. Please try again." },
+      {
+        error:
+          e instanceof Error
+            ? e.message
+            : "Failed to parse syllabus. Please try again.",
+      },
       { status: 500 },
     );
   }
