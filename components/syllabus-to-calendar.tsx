@@ -6,10 +6,15 @@ import { EventsTable } from "@/components/events-table";
 import type { SyllabusEvent } from "@/lib/events";
 import { syncEventsToCalendar } from "@/app/server-actions/calendar";
 import { useSession } from "next-auth/react";
-import { getEvents, updateEvent, deleteEvent } from "@/app/server-actions/events";
+import {
+  getEvents,
+  updateEvent,
+  deleteEvent,
+} from "@/app/server-actions/events";
 import { prismaEventToSyllabus } from "@/lib/events";
 import { useNotificationStore } from "@/lib/store";
-import { AlertCircle, Sparkles, Loader2 } from "lucide-react";
+import { AlertCircle, ArrowRight, Loader2, FileText, X } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 type Row = SyllabusEvent & { selected: boolean; id?: string };
 
@@ -22,21 +27,37 @@ export function SyllabusToCalendar() {
   const [error, setError] = React.useState<string | null>(null);
   const [courseId, setCourseId] = React.useState<string | null>(null);
   const [courseName, setCourseName] = React.useState("");
+  const [stagedFile, setStagedFile] = React.useState<File | null>(null);
   const originalRowsRef = React.useRef<Row[]>([]);
+  const courseInputRef = React.useRef<HTMLInputElement>(null);
 
-  async function handlePdf(file: File) {
-    setIsParsing(true);
+  function handleFileSelect(file: File) {
+    setStagedFile(file);
     setError(null);
+    // Auto-focus the course name input after file is staged
+    setTimeout(() => courseInputRef.current?.focus(), 100);
+  }
+
+  function handleClearFile() {
+    setStagedFile(null);
+    setError(null);
+  }
+
+  async function handleParse() {
+    if (!stagedFile) return;
 
     if (!courseName.trim()) {
-      setError("Please enter a course name before uploading.");
-      setIsParsing(false);
+      setError("Please enter a course name.");
+      courseInputRef.current?.focus();
       return;
     }
 
+    setIsParsing(true);
+    setError(null);
+
     try {
       const form = new FormData();
-      form.set("file", file);
+      form.set("file", stagedFile);
       form.set("courseName", courseName.trim());
 
       const res = await fetch("/api/parse", { method: "POST", body: form });
@@ -66,7 +87,9 @@ export function SyllabusToCalendar() {
       setRows(loadedRows);
       originalRowsRef.current = loadedRows;
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Something went wrong while parsing.");
+      setError(
+        e instanceof Error ? e.message : "Something went wrong while parsing.",
+      );
     } finally {
       setIsParsing(false);
     }
@@ -98,7 +121,7 @@ export function SyllabusToCalendar() {
             title: row.title,
             date: row.date,
             description: row.description,
-          })
+          }),
         );
 
       await Promise.all(editPromises);
@@ -108,8 +131,8 @@ export function SyllabusToCalendar() {
       if (!result.ok) throw new Error(result.error);
 
       addNotification({
-        message: `Successfully synced ${selectedEventIds.length} event${selectedEventIds.length !== 1 ? 's' : ''} to Google Calendar!`,
-        type: 'success',
+        message: `Successfully synced ${selectedEventIds.length} event${selectedEventIds.length !== 1 ? "s" : ""} to Google Calendar!`,
+        type: "success",
       });
 
       if (courseId) {
@@ -124,12 +147,13 @@ export function SyllabusToCalendar() {
         }
       }
     } catch (e) {
-      const errorMessage = e instanceof Error ? e.message : "Calendar sync failed.";
+      const errorMessage =
+        e instanceof Error ? e.message : "Calendar sync failed.";
       setError(errorMessage);
 
       addNotification({
         message: errorMessage,
-        type: 'error',
+        type: "error",
       });
     } finally {
       setIsSyncing(false);
@@ -141,7 +165,7 @@ export function SyllabusToCalendar() {
     if (id) {
       const result = await deleteEvent(id);
       if (!result.ok) {
-        addNotification({ message: result.error, type: 'error' });
+        addNotification({ message: result.error, type: "error" });
       }
     }
   }
@@ -151,33 +175,101 @@ export function SyllabusToCalendar() {
     setRows(rows.map((r) => ({ ...r, selected: !allSelected })));
   }
 
+  function handleCourseNameKeyDown(e: React.KeyboardEvent) {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      handleParse();
+    }
+  }
+
   const selectedCount = rows.filter((r) => r.selected).length;
   const allSelected = rows.length > 0 && rows.every((r) => r.selected);
 
   return (
     <section className="space-y-6">
-      <div className="space-y-2">
-        <label htmlFor="courseName" className="text-xs font-medium uppercase tracking-wider text-[var(--text-tertiary)]">
-          Course name
-        </label>
-        <input
-          id="courseName"
-          type="text"
-          placeholder="e.g., Data Structures"
-          value={courseName}
-          onChange={(e) => setCourseName(e.target.value)}
-          disabled={isParsing}
-          className="w-full rounded-xl border border-[var(--border)] bg-surface px-4 py-3 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] transition-colors duration-150 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-500/10"
-        />
-      </div>
+      {/* Step 1: Upload dropzone (always visible when no file staged and no results) */}
+      {!stagedFile && rows.length === 0 && (
+        <UploadDropzone onFile={handleFileSelect} isBusy={false} />
+      )}
 
-      <UploadDropzone onFile={handlePdf} isBusy={isParsing} />
+      {/* Step 2: File staged — show file info + course name input */}
+      {stagedFile && rows.length === 0 && (
+        <div className="animate-fade-in-up space-y-4">
+          <div className="rounded-xl border border-[var(--border)] bg-surface p-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-brand-50 dark:bg-brand-50">
+                <FileText className="w-5 h-5 text-brand-600" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-[var(--text-primary)] truncate">
+                  {stagedFile.name}
+                </p>
+                <p className="text-xs text-[var(--text-tertiary)]">
+                  {(stagedFile.size / 1024).toFixed(0)} KB
+                </p>
+              </div>
+              <button
+                onClick={handleClearFile}
+                disabled={isParsing}
+                className="p-1.5 rounded-lg hover:bg-surface-secondary transition-colors duration-150 text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] disabled:opacity-40"
+                aria-label="Remove file"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <label
+              htmlFor="courseName"
+              className="text-xs font-medium uppercase tracking-wider text-[var(--text-tertiary)]"
+            >
+              Course name
+            </label>
+            <input
+              ref={courseInputRef}
+              id="courseName"
+              type="text"
+              placeholder="e.g., Data Structures"
+              value={courseName}
+              onChange={(e) => setCourseName(e.target.value)}
+              onKeyDown={handleCourseNameKeyDown}
+              disabled={isParsing}
+              className="w-full rounded-xl border border-[var(--border)] bg-surface px-4 py-3 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] transition-colors duration-150 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-500/10"
+            />
+          </div>
+
+          <button
+            onClick={handleParse}
+            disabled={isParsing || !courseName.trim()}
+            className={cn(
+              "w-full rounded-xl px-5 py-3 text-sm font-medium transition-all duration-150 flex items-center justify-center gap-2",
+              "bg-brand-600 text-white hover:bg-brand-700",
+              "disabled:opacity-40 disabled:cursor-not-allowed",
+            )}
+          >
+            {isParsing ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Extracting events...
+              </>
+            ) : (
+              <>
+                <ArrowRight className="h-4 w-4" />
+                Extract Events
+              </>
+            )}
+          </button>
+        </div>
+      )}
 
       {error && (
         <div className="rounded-xl border border-red-200/60 bg-red-50/50 p-4 dark:border-red-900/30 dark:bg-red-950/20">
           <div className="flex items-center gap-2">
             <AlertCircle className="h-4 w-4 text-red-500 dark:text-red-400" />
-            <span className="text-sm text-red-600 dark:text-red-400">{error}</span>
+            <span className="text-sm text-red-600 dark:text-red-400">
+              {error}
+            </span>
           </div>
         </div>
       )}
@@ -186,9 +278,9 @@ export function SyllabusToCalendar() {
         <div className="animate-fade-in-up space-y-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-brand-500" />
+              <ArrowRight className="h-4 w-4 text-brand-500" />
               <span className="text-sm font-medium text-[var(--text-primary)]">
-                {rows.length} {rows.length === 1 ? 'event' : 'events'} found
+                {rows.length} {rows.length === 1 ? "event" : "events"} found
               </span>
             </div>
             <div className="flex items-center gap-3">
@@ -196,7 +288,7 @@ export function SyllabusToCalendar() {
                 onClick={handleToggleAll}
                 className="text-xs font-medium text-brand-600 hover:text-brand-700 transition-colors duration-150 cursor-pointer"
               >
-                {allSelected ? 'Deselect all' : 'Select all'}
+                {allSelected ? "Deselect all" : "Select all"}
               </button>
               <span className="text-xs text-[var(--text-tertiary)]">
                 {selectedCount} of {rows.length} selected
@@ -204,7 +296,11 @@ export function SyllabusToCalendar() {
             </div>
           </div>
 
-          <EventsTable rows={rows} onChange={setRows} onDeleteRow={handleDeleteRow} />
+          <EventsTable
+            rows={rows}
+            onChange={setRows}
+            onDeleteRow={handleDeleteRow}
+          />
 
           <div className="rounded-xl bg-surface-secondary p-4">
             <div className="flex items-center justify-between gap-4">
@@ -213,11 +309,17 @@ export function SyllabusToCalendar() {
               </span>
               <button
                 onClick={handleSync}
-                disabled={!selectedCount || isSyncing || !session?.hasCalendarAccess}
+                disabled={
+                  !selectedCount || isSyncing || !session?.hasCalendarAccess
+                }
                 className="rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-medium text-white transition-all duration-150 hover:bg-brand-700 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2"
               >
                 {isSyncing && <Loader2 className="h-4 w-4 animate-spin" />}
-                {session?.hasCalendarAccess ? (isSyncing ? "Syncing..." : "Sync to Google Calendar") : "Sign in to sync"}
+                {session?.hasCalendarAccess
+                  ? isSyncing
+                    ? "Syncing..."
+                    : "Sync to Google Calendar"
+                  : "Sign in to sync"}
               </button>
             </div>
           </div>

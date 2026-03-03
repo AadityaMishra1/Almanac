@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 
 export function UploadDropzone({
   onFile,
-  isBusy
+  isBusy,
 }: {
   onFile: (file: File) => void | Promise<void>;
   isBusy?: boolean;
@@ -69,13 +69,13 @@ export function UploadDropzone({
         "bg-surface-secondary border-[var(--border)]",
         !isBusy && "cursor-pointer hover:border-brand-400 hover:bg-brand-50/50",
         isDragging && "border-brand-500 bg-brand-50",
-        isBusy && "opacity-60 pointer-events-none"
+        isBusy && "opacity-60 pointer-events-none",
       )}
     >
       <input
         ref={inputRef}
         type="file"
-        accept="application/pdf"
+        accept=".pdf,.docx,.txt,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain"
         className="hidden"
         onChange={onChange}
         disabled={isBusy}
@@ -93,17 +93,17 @@ export function UploadDropzone({
           <FileUp
             className={cn(
               "w-10 h-10 mb-3 transition-colors duration-200",
-              isDragging ? "text-brand-500" : "text-[var(--text-tertiary)]"
+              isDragging ? "text-brand-500" : "text-[var(--text-tertiary)]",
             )}
           />
           <p className="text-sm font-medium text-[var(--text-primary)] mb-1">
-            Drop your syllabus PDF
+            Drop your syllabus here
           </p>
           <p className="text-xs text-[var(--text-tertiary)]">
             or click to browse
           </p>
           <p className="text-xs text-[var(--text-tertiary)] mt-4">
-            PDF up to 10MB
+            PDF, DOCX, or TXT up to 10MB
           </p>
         </>
       )}

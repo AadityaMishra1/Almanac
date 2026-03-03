@@ -1,11 +1,19 @@
-'use client';
+"use client";
 
-import { useEffect } from 'react';
-import { format, parseISO } from 'date-fns';
-import { X, Clock, MapPin, GraduationCap, CheckCircle2, Trash2 } from 'lucide-react';
-import type { UnifiedEvent } from './types';
-import { getEventColor, getEventIcon } from './utils';
-import { cn } from '@/lib/utils';
+import { useEffect } from "react";
+import { format, parseISO } from "date-fns";
+import {
+  X,
+  Clock,
+  MapPin,
+  GraduationCap,
+  CheckCircle2,
+  Trash2,
+  AlertCircle,
+} from "lucide-react";
+import type { UnifiedEvent } from "./types";
+import { getEventColor, getEventIcon, isEventPastDue } from "./utils";
+import { cn } from "@/lib/utils";
 
 interface EventDetailModalProps {
   event: UnifiedEvent;
@@ -13,35 +21,40 @@ interface EventDetailModalProps {
   onDelete?: (eventId: string) => void;
 }
 
-export function EventDetailModal({ event, onClose, onDelete }: EventDetailModalProps) {
+export function EventDetailModal({
+  event,
+  onClose,
+  onDelete,
+}: EventDetailModalProps) {
   const colors = getEventColor(event);
   const Icon = getEventIcon(event);
 
   const getAccentColor = (): string => {
-    if (colors.border.includes('brand')) return '#ee7a12';
-    if (colors.border.includes('blue')) return '#60a5fa';
-    if (colors.border.includes('teal')) return '#5eead4';
-    if (colors.border.includes('violet')) return '#a78bfa';
-    if (colors.border.includes('emerald')) return '#6ee7b7';
-    if (colors.border.includes('rose')) return '#fb7185';
-    if (colors.border.includes('amber')) return '#fbbf24';
-    if (colors.border.includes('cyan')) return '#22d3ee';
-    if (colors.border.includes('fuchsia')) return '#e879f9';
-    if (colors.border.includes('orange')) return '#fb923c';
-    if (colors.border.includes('indigo')) return '#818cf8';
-    return '#9c998f';
+    if (colors.border.includes("red")) return "#f87171";
+    if (colors.border.includes("brand")) return "#ee7a12";
+    if (colors.border.includes("blue")) return "#60a5fa";
+    if (colors.border.includes("teal")) return "#5eead4";
+    if (colors.border.includes("violet")) return "#a78bfa";
+    if (colors.border.includes("emerald")) return "#6ee7b7";
+    if (colors.border.includes("rose")) return "#fb7185";
+    if (colors.border.includes("amber")) return "#fbbf24";
+    if (colors.border.includes("cyan")) return "#22d3ee";
+    if (colors.border.includes("fuchsia")) return "#e879f9";
+    if (colors.border.includes("orange")) return "#fb923c";
+    if (colors.border.includes("indigo")) return "#818cf8";
+    return "#9c998f";
   };
 
   useEffect(() => {
     const handleEsc = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === "Escape") onClose();
     };
-    window.addEventListener('keydown', handleEsc);
-    return () => window.removeEventListener('keydown', handleEsc);
+    window.addEventListener("keydown", handleEsc);
+    return () => window.removeEventListener("keydown", handleEsc);
   }, [onClose]);
 
   useEffect(() => {
-    document.getElementById('modal-close-button')?.focus();
+    document.getElementById("modal-close-button")?.focus();
   }, []);
 
   return (
@@ -54,9 +67,9 @@ export function EventDetailModal({ event, onClose, onDelete }: EventDetailModalP
     >
       <div
         className={cn(
-          'bg-surface rounded-t-2xl sm:rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden',
-          'transform transition-all',
-          'animate-slide-in-bottom sm:animate-scale-in'
+          "bg-surface rounded-t-2xl sm:rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden",
+          "transform transition-all",
+          "animate-slide-in-bottom sm:animate-scale-in",
         )}
         onClick={(e) => e.stopPropagation()}
       >
@@ -73,23 +86,54 @@ export function EventDetailModal({ event, onClose, onDelete }: EventDetailModalP
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1 space-y-3">
               <div className="flex items-center gap-2 flex-wrap">
-                <div className={cn('rounded-lg px-3 py-1.5 flex items-center gap-2 border-l-[3px]', colors.bg, colors.border)}>
-                  <Icon className={cn('w-3.5 h-3.5', colors.text)} aria-hidden="true" />
-                  <span className={cn('text-xs font-semibold uppercase tracking-wider', colors.text)}>
-                    {event.assignment_type || 'Event'}
+                <div
+                  className={cn(
+                    "rounded-lg px-3 py-1.5 flex items-center gap-2 border-l-[3px]",
+                    colors.bg,
+                    colors.border,
+                  )}
+                >
+                  <Icon
+                    className={cn("w-3.5 h-3.5", colors.text)}
+                    aria-hidden="true"
+                  />
+                  <span
+                    className={cn(
+                      "text-xs font-semibold uppercase tracking-wider",
+                      colors.text,
+                    )}
+                  >
+                    {event.assignment_type || "Event"}
                   </span>
                 </div>
                 {event.is_synced_to_calendar && (
                   <div className="flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 dark:bg-emerald-950/30 rounded-lg">
-                    <CheckCircle2 className="w-3 h-3 text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
+                    <CheckCircle2
+                      className="w-3 h-3 text-emerald-600 dark:text-emerald-400"
+                      aria-hidden="true"
+                    />
                     <span className="text-xs font-medium text-emerald-700 dark:text-emerald-300">
                       Synced to Google Calendar
                     </span>
                   </div>
                 )}
+                {isEventPastDue(event) && (
+                  <div className="flex items-center gap-1.5 px-2.5 py-1 bg-red-50 dark:bg-red-950/30 rounded-lg">
+                    <AlertCircle
+                      className="w-3 h-3 text-red-600 dark:text-red-400"
+                      aria-hidden="true"
+                    />
+                    <span className="text-xs font-medium text-red-700 dark:text-red-300">
+                      Past Due
+                    </span>
+                  </div>
+                )}
               </div>
 
-              <h3 id="modal-title" className="text-xl font-semibold text-[var(--text-primary)] leading-tight">
+              <h3
+                id="modal-title"
+                className="text-xl font-semibold text-[var(--text-primary)] leading-tight"
+              >
                 {event.title}
               </h3>
 
@@ -98,20 +142,25 @@ export function EventDetailModal({ event, onClose, onDelete }: EventDetailModalP
                   <GraduationCap className="w-4 h-4" aria-hidden="true" />
                   <span className="font-medium">{event.course_name}</span>
                   {event.course_code && (
-                    <span className="text-[var(--text-tertiary)]">({event.course_code})</span>
+                    <span className="text-[var(--text-tertiary)]">
+                      ({event.course_code})
+                    </span>
                   )}
                 </div>
               )}
             </div>
 
             <div className="flex items-center gap-1 flex-shrink-0">
-              {event.source === 'database' && onDelete && (
+              {event.source === "database" && onDelete && (
                 <button
                   onClick={() => onDelete(event.id)}
                   className="p-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors duration-150 min-h-[40px] min-w-[40px] flex items-center justify-center group/trash"
                   aria-label="Delete event"
                 >
-                  <Trash2 className="w-4 h-4 text-[var(--text-tertiary)] group-hover/trash:text-red-500 transition-colors duration-150" aria-hidden="true" />
+                  <Trash2
+                    className="w-4 h-4 text-[var(--text-tertiary)] group-hover/trash:text-red-500 transition-colors duration-150"
+                    aria-hidden="true"
+                  />
                 </button>
               )}
               <button
@@ -120,7 +169,10 @@ export function EventDetailModal({ event, onClose, onDelete }: EventDetailModalP
                 className="p-2 rounded-lg hover:bg-surface-secondary transition-colors duration-150 min-h-[40px] min-w-[40px] flex items-center justify-center"
                 aria-label="Close modal"
               >
-                <X className="w-5 h-5 text-[var(--text-tertiary)]" aria-hidden="true" />
+                <X
+                  className="w-5 h-5 text-[var(--text-tertiary)]"
+                  aria-hidden="true"
+                />
               </button>
             </div>
           </div>
@@ -130,14 +182,18 @@ export function EventDetailModal({ event, onClose, onDelete }: EventDetailModalP
           {/* Time */}
           <div className="flex items-start gap-3">
             <div className="p-2 bg-surface-secondary rounded-lg">
-              <Clock className="w-4 h-4 text-[var(--text-secondary)]" aria-hidden="true" />
+              <Clock
+                className="w-4 h-4 text-[var(--text-secondary)]"
+                aria-hidden="true"
+              />
             </div>
             <div>
               <div className="font-medium text-[var(--text-primary)] text-sm">
-                {format(parseISO(event.start_time), 'EEEE, MMMM d, yyyy')}
+                {format(parseISO(event.start_time), "EEEE, MMMM d, yyyy")}
               </div>
               <div className="text-sm text-[var(--text-secondary)] mt-0.5">
-                {format(parseISO(event.start_time), 'h:mm a')} - {format(parseISO(event.end_time), 'h:mm a')}
+                {format(parseISO(event.start_time), "h:mm a")} -{" "}
+                {format(parseISO(event.end_time), "h:mm a")}
               </div>
             </div>
           </div>
@@ -146,11 +202,18 @@ export function EventDetailModal({ event, onClose, onDelete }: EventDetailModalP
           {event.location && (
             <div className="flex items-start gap-3">
               <div className="p-2 bg-surface-secondary rounded-lg">
-                <MapPin className="w-4 h-4 text-[var(--text-secondary)]" aria-hidden="true" />
+                <MapPin
+                  className="w-4 h-4 text-[var(--text-secondary)]"
+                  aria-hidden="true"
+                />
               </div>
               <div>
-                <div className="text-xs text-[var(--text-tertiary)] uppercase tracking-wider mb-1">Location</div>
-                <div className="font-medium text-[var(--text-primary)] text-sm">{event.location}</div>
+                <div className="text-xs text-[var(--text-tertiary)] uppercase tracking-wider mb-1">
+                  Location
+                </div>
+                <div className="font-medium text-[var(--text-primary)] text-sm">
+                  {event.location}
+                </div>
               </div>
             </div>
           )}
