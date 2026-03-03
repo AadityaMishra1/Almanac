@@ -45,7 +45,7 @@ export function Navigation() {
 
   const handleSignOut = useCallback(() => {
     setSigningOut(true);
-    signOut();
+    signOut({ callbackUrl: "/" });
   }, []);
 
   const isActive = (path: string) => pathname === path;
