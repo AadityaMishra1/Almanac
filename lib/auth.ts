@@ -5,6 +5,10 @@ import { prisma } from "@/lib/db";
 const CALENDAR_SCOPE = "https://www.googleapis.com/auth/calendar.events";
 
 export const authOptions: NextAuthOptions = {
+  debug: process.env.NODE_ENV === "development",
+  pages: {
+    error: "/",
+  },
   session: { strategy: "jwt" },
   providers: [
     GoogleProvider({
@@ -98,12 +102,20 @@ export const authOptions: NextAuthOptions = {
 
       // Always fetch userId from database using email
       if (token.email) {
-        const dbUser = await prisma.user.findUnique({
-          where: { email: token.email },
-          select: { id: true },
-        });
-        if (dbUser) {
-          token.userId = dbUser.id;
+        try {
+          const dbUser = await prisma.user.findUnique({
+            where: { email: token.email },
+            select: { id: true },
+          });
+          if (dbUser) {
+            token.userId = dbUser.id;
+          }
+        } catch (error) {
+          console.error(
+            "JWT callback: failed to fetch userId for",
+            token.email,
+            error,
+          );
         }
       }
 
