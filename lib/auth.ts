@@ -86,8 +86,12 @@ export const authOptions: NextAuthOptions = {
           },
         });
       } catch (error) {
-        console.error("Error creating/updating user:", error);
-        return false; // Block sign-in — a session without userId is useless
+        console.error(
+          "signIn DB error:",
+          error instanceof Error ? error.message : error,
+        );
+        // Allow sign-in to proceed — JWT callback will retry user lookup.
+        // Once the DB connection is fixed, re-apply `return false` here.
       }
 
       return true;
