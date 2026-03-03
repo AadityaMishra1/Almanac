@@ -27,10 +27,12 @@ function createLimiter(requests: number, window: string) {
   });
 }
 
-/** Per-route rate limiters */
+/** Per-route rate limiters (burst + daily caps for expensive operations) */
 const limiters = {
   parse: createLimiter(5, "1 m"),
+  parseDaily: createLimiter(30, "1 d"),
   chat: createLimiter(20, "1 m"),
+  chatDaily: createLimiter(200, "1 d"),
   calendarEvents: createLimiter(60, "1 m"),
   accountDelete: createLimiter(1, "1 h"),
   accountExport: createLimiter(3, "1 h"),
