@@ -59,5 +59,32 @@ export async function GET() {
     results.gemini = { error: e instanceof Error ? e.message : String(e) };
   }
 
+  // Test pdf-parse (the fallback path requires this)
+  try {
+    const pdfParseModule = await import("pdf-parse/lib/pdf-parse");
+    const pdfParse = (pdfParseModule as Record<string, unknown>).default ?? pdfParseModule;
+    results.pdfParse = {
+      ok: typeof pdfParse === "function",
+      type: typeof pdfParse,
+    };
+  } catch (e) {
+    results.pdfParse = { error: e instanceof Error ? e.message : String(e) };
+  }
+
+  // Test AI SDK Groq (used by chat route)
+  try {
+    const { createGroq } = await import("@ai-sdk/groq");
+    const { generateText } = await import("ai");
+    const groqProvider = createGroq({ apiKey: process.env.GROQ_API_KEY });
+    const { text } = await generateText({
+      model: groqProvider("llama-3.3-70b-versatile"),
+      prompt: "Say 'ok' and nothing else.",
+      maxOutputTokens: 5,
+    });
+    results.aiSdkGroq = { ok: true, text };
+  } catch (e) {
+    results.aiSdkGroq = { error: e instanceof Error ? e.message : String(e) };
+  }
+
   return NextResponse.json(results, { status: 200 });
 }
