@@ -27,31 +27,39 @@ export const authOptions: NextAuthOptions = {
     async signOut({ token }) {
       // Revoke Google token and clear from database on sign-out
       if (token?.email) {
-        const user = await prisma.user.findUnique({
-          where: { email: token.email as string },
-          select: { googleAccessToken: true, googleRefreshToken: true },
-        });
+        try {
+          const user = await prisma.user.findUnique({
+            where: { email: token.email as string },
+            select: { googleAccessToken: true, googleRefreshToken: true },
+          });
 
-        // Revoke the access token at Google (best-effort)
-        if (user?.googleAccessToken) {
-          try {
-            const revokeUrl = new URL("https://oauth2.googleapis.com/revoke");
-            revokeUrl.searchParams.set("token", user.googleAccessToken);
-            await fetch(revokeUrl, { method: "POST" });
-          } catch {
-            // Non-fatal: token will expire naturally
+          // Revoke the access token at Google (best-effort)
+          if (user?.googleAccessToken) {
+            try {
+              const revokeUrl = new URL("https://oauth2.googleapis.com/revoke");
+              revokeUrl.searchParams.set("token", user.googleAccessToken);
+              await fetch(revokeUrl, { method: "POST" });
+            } catch {
+              // Non-fatal: token will expire naturally
+            }
           }
-        }
 
-        // Clear tokens from database
-        await prisma.user.update({
-          where: { email: token.email as string },
-          data: {
-            googleAccessToken: null,
-            googleRefreshToken: null,
-            googleTokenExpiry: null,
-          },
-        });
+          // Clear tokens from database
+          await prisma.user.update({
+            where: { email: token.email as string },
+            data: {
+              googleAccessToken: null,
+              googleRefreshToken: null,
+              googleTokenExpiry: null,
+            },
+          });
+        } catch (error) {
+          console.error(
+            "signOut DB error:",
+            error instanceof Error ? error.message : error,
+          );
+          // Non-fatal: sign-out proceeds even if DB is unreachable
+        }
       }
     },
   },
@@ -90,8 +98,7 @@ export const authOptions: NextAuthOptions = {
           "signIn DB error:",
           error instanceof Error ? error.message : error,
         );
-        // Allow sign-in to proceed — JWT callback will retry user lookup.
-        // Once the DB connection is fixed, re-apply `return false` here.
+        return false;
       }
 
       return true;
@@ -103,7 +110,12 @@ export const authOptions: NextAuthOptions = {
         // DO NOT store accessToken/refreshToken in JWT — they stay in the DB only
       }
 
-      // Always fetch userId from database using email
+      // userId already cached in JWT — skip DB roundtrip
+      if (token.userId) {
+        return token;
+      }
+
+      // Fetch userId from database using email
       if (token.email) {
         try {
           const dbUser = await prisma.user.findUnique({

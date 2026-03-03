@@ -49,14 +49,12 @@ export async function checkRateLimit(
 ): Promise<NextResponse | null> {
   const limiter = limiters[key];
   if (!limiter) {
-    // Fail-closed in production: reject requests when Redis is unavailable
     if (process.env.NODE_ENV === "production") {
-      return NextResponse.json(
-        { error: "Service temporarily unavailable. Please try again later." },
-        { status: 503 },
+      console.warn(
+        `[rate-limit] Redis not configured — skipping rate limit for "${key}"`,
       );
     }
-    return null; // Allow through in development without Redis
+    return null;
   }
 
   const { success, limit, remaining, reset } = await limiter.limit(identifier);
