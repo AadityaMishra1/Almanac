@@ -59,23 +59,32 @@ export async function checkRateLimit(
     return null;
   }
 
-  const { success, limit, remaining, reset } = await limiter.limit(identifier);
+  try {
+    const { success, limit, remaining, reset } =
+      await limiter.limit(identifier);
 
-  if (!success) {
-    const retryAfter = Math.ceil((reset - Date.now()) / 1000);
-    return NextResponse.json(
-      { error: "Too many requests. Please try again later." },
-      {
-        status: 429,
-        headers: {
-          "Retry-After": String(retryAfter),
-          "X-RateLimit-Limit": String(limit),
-          "X-RateLimit-Remaining": "0",
-          "X-RateLimit-Reset": String(reset),
+    if (!success) {
+      const retryAfter = Math.ceil((reset - Date.now()) / 1000);
+      return NextResponse.json(
+        { error: "Too many requests. Please try again later." },
+        {
+          status: 429,
+          headers: {
+            "Retry-After": String(retryAfter),
+            "X-RateLimit-Limit": String(limit),
+            "X-RateLimit-Remaining": "0",
+            "X-RateLimit-Reset": String(reset),
+          },
         },
-      },
-    );
-  }
+      );
+    }
 
-  return null;
+    return null;
+  } catch (err) {
+    console.warn(
+      `[rate-limit] Redis unreachable for "${key}", allowing request:`,
+      err instanceof Error ? err.message : err,
+    );
+    return null;
+  }
 }

@@ -109,9 +109,11 @@ export async function POST(req: Request) {
     });
   }
 
-  // Rate limit: 20 req/min for chat
+  // Rate limit: 20 req/min burst + 200 req/day for chat
   const rateLimited = await checkRateLimit("chat", session.user.id);
   if (rateLimited) return rateLimited;
+  const dailyLimited = await checkRateLimit("chatDaily", session.user.id);
+  if (dailyLimited) return dailyLimited;
 
   // Validate request body
   const ChatRequestSchema = z.object({

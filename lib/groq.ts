@@ -25,6 +25,13 @@ export async function extractEventsFromSyllabusText(
   const apiKey = process.env.GROQ_API_KEY;
   if (!apiKey) throw new Error("Missing GROQ_API_KEY env var.");
 
+  // Truncate text to prevent excessive token usage (100k chars ≈ 25k tokens)
+  const MAX_TEXT_CHARS = 100_000;
+  const truncatedText =
+    text.length > MAX_TEXT_CHARS
+      ? text.slice(0, MAX_TEXT_CHARS) + "\n[TRUNCATED]"
+      : text;
+
   const prompt = [
     "You are extracting calendar events from a university course syllabus.",
     "Return ONLY valid JSON.",
@@ -35,7 +42,7 @@ export async function extractEventsFromSyllabusText(
     "Do not include class meeting times.",
     "",
     "SYLLABUS TEXT:",
-    text,
+    truncatedText,
   ].join("\n");
 
   const controller = new AbortController();

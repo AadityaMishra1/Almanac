@@ -6,6 +6,8 @@ import { Navigation } from "@/components/navigation";
 import { ChatPanel } from "@/components/chat/chat-panel";
 import { ToastNotifications } from "@/components/toast-notifications";
 import { Instrument_Serif, DM_Sans } from "next/font/google";
+import { Analytics } from "@vercel/analytics/next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import "@/app/globals.css";
 
 const instrumentSerif = Instrument_Serif({
@@ -73,6 +75,8 @@ export default async function RootLayout({
           <ChatPanel />
           {children}
         </Providers>
+        <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   );
